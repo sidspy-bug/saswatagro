@@ -19,6 +19,14 @@ const Map<String, int> kSoilThresholds = {
 
 enum AppLanguage { en, hi, bn }
 
+String applyTemplate(String template, Map<String, String> values) {
+  var output = template;
+  values.forEach((token, value) {
+    output = output.replaceAll('{$token}', value);
+  });
+  return output;
+}
+
 class CropProfile {
   const CropProfile({
     required this.name,
@@ -578,11 +586,7 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
   String tr(String key) => _t(_language)[key] ?? key;
 
   String trf(String key, Map<String, String> values) {
-    var output = tr(key);
-    values.forEach((token, value) {
-      output = output.replaceAll('{$token}', value);
-    });
-    return output;
+    return applyTemplate(tr(key), values);
   }
 
   Uri _buildEspUri(String path, {Map<String, String>? queryParameters}) {
@@ -1154,7 +1158,7 @@ class DashboardScreen extends StatelessWidget {
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  '${tr('threshold')}: $threshold | ${tr('updated')}: ${formatTime(lastUpdated, tr)}',
+                  '${tr('threshold')}: $threshold | ${tr('updated')}: ${formatTime(lastUpdated, tr('notSynced'))}',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
@@ -1360,13 +1364,26 @@ class AdvisoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final items = buildAdvisoryItems(
-      tr: tr,
+    final items = buildAdvisoryItems(
       soil: selectedSoil,
       crop: crop,
       moisture: moisture,
-      threshold: threshold,
       isDry: isDry,
+      irrigationDecisionTitle: tr('irrigationDecision'),
+      fieldDryAdvice: tr('fieldDryAdvice'),
+      fieldWetAdvice: tr('fieldWetAdvice'),
+      soilGuidanceTitle: applyTemplate(tr('soilGuidanceTitle'), {'soil': selectedSoil}),
+      soilAdvice: {
+        'Sandy': tr('sandyAdvice'),
+        'Loamy': tr('loamyAdvice'),
+        'Clay': tr('clayAdvice'),
+      },
+      moistureUnavailable: tr('moistureUnavailable'),
+      moistureSummary: applyTemplate(
+        tr('moistureSummary'),
+        {'moisture': (moisture ?? 0).toString(), 'threshold': threshold.toString()},
+      ),
+      sensorInsightTitle: tr('sensorInsight'),
     );
 
     return SingleChildScrollView(
@@ -1896,36 +1913,32 @@ class AdviceItem {
 }
 
 List<AdviceItem> buildAdvisoryItems({
-  required String Function(String) tr,
   required String soil,
   required CropProfile crop,
   required int? moisture,
-  required int threshold,
   required bool isDry,
+  required String irrigationDecisionTitle,
+  required String fieldDryAdvice,
+  required String fieldWetAdvice,
+  required String soilGuidanceTitle,
+  required Map<String, String> soilAdvice,
+  required String moistureUnavailable,
+  required String moistureSummary,
+  required String sensorInsightTitle,
 }) {
-  final soilAdvice = {
-    'Sandy': tr('sandyAdvice'),
-    'Loamy': tr('loamyAdvice'),
-    'Clay': tr('clayAdvice'),
-  };
-
-  final moistureSummary = moisture == null
-      ? tr('moistureUnavailable')
-      : tr('moistureSummary')
-          .replaceAll('{moisture}', moisture.toString())
-          .replaceAll('{threshold}', threshold.toString());
+  final localizedMoistureSummary = moisture == null ? moistureUnavailable : moistureSummary;
 
   return [
     AdviceItem(
-      title: tr('irrigationDecision'),
+      title: irrigationDecisionTitle,
       description: isDry
-          ? tr('fieldDryAdvice')
-          : tr('fieldWetAdvice'),
+          ? fieldDryAdvice
+          : fieldWetAdvice,
       icon: Icons.water_drop,
       color: isDry ? const Color(0xFFD97706) : const Color(0xFF2563EB),
     ),
     AdviceItem(
-      title: tr('soilGuidanceTitle').replaceAll('{soil}', soil),
+      title: soilGuidanceTitle,
       description: soilAdvice[soil] ?? soilAdvice['Loamy']!,
       icon: Icons.landscape,
       color: const Color(0xFF14B8A6),
@@ -1938,8 +1951,8 @@ List<AdviceItem> buildAdvisoryItems({
       color: const Color(0xFF22C55E),
     ),
     AdviceItem(
-      title: tr('sensorInsight'),
-      description: moistureSummary,
+      title: sensorInsightTitle,
+      description: localizedMoistureSummary,
       icon: Icons.analytics,
       color: const Color(0xFF1D6FD8),
     ),
@@ -1954,8 +1967,8 @@ Map<String, List<CropProfile>> groupByCategory(List<CropProfile> crops) {
   return grouped;
 }
 
-String formatTime(DateTime? dateTime, String Function(String) tr) {
-  if (dateTime == null) return tr('notSynced');
+String formatTime(DateTime? dateTime, String notSyncedLabel) {
+  if (dateTime == null) return notSyncedLabel;
   final hour = dateTime.hour.toString().padLeft(2, '0');
   final minute = dateTime.minute.toString().padLeft(2, '0');
   final second = dateTime.second.toString().padLeft(2, '0');
