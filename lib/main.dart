@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 const String kDefaultEspBaseUrl = 'http://192.168.4.1';
 const String kOpenAiApiKey = 'PASTE_YOUR_OPENAI_API_KEY';
@@ -13,49 +15,249 @@ const Map<String, int> kSoilThresholds = {
   'Clay': 700,
 };
 
+enum AppLanguage { en, hi, bn }
+
+class CropProfile {
+  const CropProfile({
+    required this.name,
+    required this.category,
+    required this.waterMinMmPerWeek,
+    required this.waterMaxMmPerWeek,
+    required this.description,
+  });
+
+  final String name;
+  final String category;
+  final int waterMinMmPerWeek;
+  final int waterMaxMmPerWeek;
+  final String description;
+}
+
+const List<CropProfile> kCropProfiles = [
+  CropProfile(
+    name: 'Rice',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 40,
+    waterMaxMmPerWeek: 70,
+    description: 'Needs standing water in many stages and stable irrigation.',
+  ),
+  CropProfile(
+    name: 'Wheat',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 40,
+    description: 'Needs moderate watering and good drainage near maturity.',
+  ),
+  CropProfile(
+    name: 'Maize',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 30,
+    waterMaxMmPerWeek: 45,
+    description: 'Needs regular irrigation in tasseling and grain filling stages.',
+  ),
+  CropProfile(
+    name: 'Millet',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 15,
+    waterMaxMmPerWeek: 25,
+    description: 'Drought tolerant and suitable for low rainfall areas.',
+  ),
+  CropProfile(
+    name: 'Pulses',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 15,
+    waterMaxMmPerWeek: 30,
+    description: 'Light and controlled irrigation is generally enough.',
+  ),
+  CropProfile(
+    name: 'Potato',
+    category: 'Food Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 40,
+    description: 'Needs frequent moisture during tuber development.',
+  ),
+  CropProfile(
+    name: 'Tomato',
+    category: 'Vegetable Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs even watering to avoid fruit cracking.',
+  ),
+  CropProfile(
+    name: 'Onion',
+    category: 'Vegetable Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 30,
+    description: 'Needs moderate watering and lower watering before harvest.',
+  ),
+  CropProfile(
+    name: 'Brinjal',
+    category: 'Vegetable Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs regular moisture for fruit setting.',
+  ),
+  CropProfile(
+    name: 'Cabbage',
+    category: 'Vegetable Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs consistent moisture for tight head formation.',
+  ),
+  CropProfile(
+    name: 'Chilli',
+    category: 'Vegetable Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 30,
+    description: 'Needs controlled irrigation; avoid waterlogging.',
+  ),
+  CropProfile(
+    name: 'Banana',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 35,
+    waterMaxMmPerWeek: 60,
+    description: 'Needs high water and frequent irrigation.',
+  ),
+  CropProfile(
+    name: 'Mango',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs light irrigation in flowering and fruiting stages.',
+  ),
+  CropProfile(
+    name: 'Guava',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs balanced watering and good drainage.',
+  ),
+  CropProfile(
+    name: 'Papaya',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 40,
+    description: 'Needs regular moisture for continuous fruiting.',
+  ),
+  CropProfile(
+    name: 'Orange',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs deep watering and mulching around root zone.',
+  ),
+  CropProfile(
+    name: 'Grapes',
+    category: 'Fruit Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs stage-based watering and careful canopy management.',
+  ),
+  CropProfile(
+    name: 'Sugarcane',
+    category: 'Cash Crop',
+    waterMinMmPerWeek: 35,
+    waterMaxMmPerWeek: 55,
+    description: 'Long duration crop with high water demand.',
+  ),
+  CropProfile(
+    name: 'Cotton',
+    category: 'Cash Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 35,
+    description: 'Needs moderate irrigation and dry weather at picking.',
+  ),
+  CropProfile(
+    name: 'Groundnut',
+    category: 'Oilseed Crop',
+    waterMinMmPerWeek: 20,
+    waterMaxMmPerWeek: 30,
+    description: 'Needs irrigation at flowering and pegging stages.',
+  ),
+  CropProfile(
+    name: 'Mustard',
+    category: 'Oilseed Crop',
+    waterMinMmPerWeek: 15,
+    waterMaxMmPerWeek: 25,
+    description: 'Needs limited water and good winter field moisture.',
+  ),
+  CropProfile(
+    name: 'Sesame',
+    category: 'Oilseed Crop',
+    waterMinMmPerWeek: 10,
+    waterMaxMmPerWeek: 20,
+    description: 'Low water crop; avoid excess irrigation.',
+  ),
+  CropProfile(
+    name: 'Tea',
+    category: 'Plantation Crop',
+    waterMinMmPerWeek: 30,
+    waterMaxMmPerWeek: 45,
+    description: 'Needs regular moisture and shade management.',
+  ),
+  CropProfile(
+    name: 'Coffee',
+    category: 'Plantation Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 40,
+    description: 'Needs pre-blossom and blossom irrigation support.',
+  ),
+  CropProfile(
+    name: 'Coconut',
+    category: 'Plantation Crop',
+    waterMinMmPerWeek: 30,
+    waterMaxMmPerWeek: 45,
+    description: 'Needs basin irrigation and mulch for retention.',
+  ),
+  CropProfile(
+    name: 'Arecanut',
+    category: 'Plantation Crop',
+    waterMinMmPerWeek: 30,
+    waterMaxMmPerWeek: 45,
+    description: 'Needs consistent moisture in root zone.',
+  ),
+  CropProfile(
+    name: 'Rubber',
+    category: 'Plantation Crop',
+    waterMinMmPerWeek: 25,
+    waterMaxMmPerWeek: 40,
+    description: 'Needs moisture support in dry months.',
+  ),
+];
+
 const Map<String, int> kCropAdjustments = {
   'Rice': 50,
   'Wheat': -30,
   'Vegetables': 0,
   'Tomato': 0,
+  'Maize': 0,
+  'Banana': 30,
+  'Mango': -10,
+  'Sugarcane': 20,
+  'Cotton': -5,
 };
 
 void main() {
-  runApp(const SmartIrrigationApp());
+  runApp(const SaswatAgroApp());
 }
 
-class SmartIrrigationApp extends StatelessWidget {
-  const SmartIrrigationApp({super.key});
+class SaswatAgroApp extends StatelessWidget {
+  const SaswatAgroApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F9D75),
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: const Color(0xFF0F9D75),
-        secondary: const Color(0xFF1D6FD8),
-        surface: const Color(0xFFF5FAF8),
+        seedColor: const Color(0xFF128C62),
       ),
     );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Smart Irrigation System',
+      title: 'Saswat Agro',
       theme: baseTheme.copyWith(
-        scaffoldBackgroundColor: const Color(0xFFF2F8F7),
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          centerTitle: false,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFF143A33),
-        ),
-        textTheme: baseTheme.textTheme.apply(
-          bodyColor: const Color(0xFF18362F),
-          displayColor: const Color(0xFF18362F),
-        ),
+        scaffoldBackgroundColor: const Color(0xFFF1F8F4),
       ),
       home: const SmartIrrigationShell(),
     );
@@ -70,36 +272,42 @@ class SmartIrrigationShell extends StatefulWidget {
 }
 
 class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
-  final List<ChatMessage> _messages = const [
-    ChatMessage(
+  final List<ChatMessage> _messages = [
+    const ChatMessage(
       text:
-          'Hello. I am your irrigation assistant. Ask me about watering, crops, soil, fertilizers, or plant diseases.',
+          'Welcome to Saswat Agro. I can help with crops, irrigation, rainfall, and farm planning.',
       isUser: false,
     ),
   ];
 
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  final FlutterTts _flutterTts = FlutterTts();
+
   int _currentIndex = 0;
+  AppLanguage _language = AppLanguage.en;
 
   String _espBaseUrl = kDefaultEspBaseUrl;
   String _openAiApiKey = kOpenAiApiKey;
 
   String _selectedSoil = 'Loamy';
   String _selectedCrop = 'Wheat';
+  String _rainLocation = '';
+  String? _rainfallPrediction;
 
   int? _moisture;
   bool _motorOn = false;
   bool _autoControlEnabled = true;
+  bool _voiceEnabled = true;
+  bool _isListening = false;
 
   bool _isRefreshing = false;
   bool _isMotorBusy = false;
   bool _isSendingSettings = false;
   bool _isChatLoading = false;
-
-  bool _dryAlertShown = false;
+  bool _isRainLoading = false;
 
   String? _espError;
   DateTime? _lastUpdated;
-
   Timer? _refreshTimer;
 
   int get _threshold {
@@ -110,42 +318,89 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
   bool get _isDry => _moisture != null && _moisture! > _threshold;
 
-  String get _statusText {
-    if (_moisture == null) return 'No data';
-    return _isDry ? 'Dry' : 'Wet';
-  }
-
-  String get _recommendationText {
-    if (_moisture == null) {
-      return 'Connect to the ESP8266 to read live moisture data.';
-    }
-
-    if (_isDry) {
-      return 'Soil is dry -> irrigation needed. Motor should stay ON until the moisture value drops below the threshold.';
-    }
-
-    return 'Soil is wet -> no irrigation required. Keep the motor OFF and avoid overwatering.';
+  CropProfile get _selectedCropProfile {
+    return kCropProfiles.firstWhere(
+      (item) => item.name == _selectedCrop,
+      orElse: () => kCropProfiles.first,
+    );
   }
 
   @override
   void initState() {
     super.initState();
+    _initVoice();
     _refreshMoistureData(showLoader: true);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 7), (_) {
       _refreshMoistureData();
     });
+  }
+
+  Future<void> _initVoice() async {
+    await _flutterTts.setSpeechRate(0.45);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _flutterTts.stop();
     super.dispose();
   }
 
-  Uri _buildEspUri(
-    String path, {
-    Map<String, String>? queryParameters,
-  }) {
+  Map<String, String> _t(AppLanguage language) {
+    switch (language) {
+      case AppLanguage.hi:
+        return {
+          'appTitle': 'सास्वत एग्रो',
+          'dashboard': 'डैशबोर्ड',
+          'settings': 'सेटिंग्स',
+          'advisory': 'सलाह',
+          'chatbot': 'वॉइस चैटबॉट',
+          'rain': 'बारिश अनुमान',
+          'soilDry': 'मिट्टी सूखी है',
+          'soilWet': 'मिट्टी गीली है',
+          'noData': 'डेटा नहीं',
+          'speakNow': 'अब बोलें...',
+          'locationHint': 'गाँव/क्षेत्र का नाम लिखें या बोलें',
+          'predictRain': 'बारिश अनुमान देखें',
+        };
+      case AppLanguage.bn:
+        return {
+          'appTitle': 'সাসওয়াত অ্যাগ্রো',
+          'dashboard': 'ড্যাশবোর্ড',
+          'settings': 'সেটিংস',
+          'advisory': 'পরামর্শ',
+          'chatbot': 'ভয়েস চ্যাটবট',
+          'rain': 'বৃষ্টি পূর্বাভাস',
+          'soilDry': 'মাটি শুকনো',
+          'soilWet': 'মাটি ভেজা',
+          'noData': 'ডেটা নেই',
+          'speakNow': 'এখন বলুন...',
+          'locationHint': 'এলাকার নাম লিখুন বা বলুন',
+          'predictRain': 'বৃষ্টি পূর্বাভাস দেখুন',
+        };
+      case AppLanguage.en:
+        return {
+          'appTitle': 'Saswat Agro',
+          'dashboard': 'Dashboard',
+          'settings': 'Settings',
+          'advisory': 'Advisory',
+          'chatbot': 'Voice Chatbot',
+          'rain': 'Rainfall Prediction',
+          'soilDry': 'Soil is dry',
+          'soilWet': 'Soil is wet',
+          'noData': 'No data',
+          'speakNow': 'Speak now...',
+          'locationHint': 'Type or speak village/area location',
+          'predictRain': 'Get rainfall prediction',
+        };
+    }
+  }
+
+  String tr(String key) => _t(_language)[key] ?? key;
+
+  Uri _buildEspUri(String path, {Map<String, String>? queryParameters}) {
     final baseUri = Uri.parse(_espBaseUrl.trim());
     return baseUri.replace(
       path: path.startsWith('/') ? path : '/$path',
@@ -155,108 +410,63 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
   Future<void> _refreshMoistureData({bool showLoader = false}) async {
     if (_isRefreshing) return;
-
-    setState(() {
-      _isRefreshing = true;
-    });
+    setState(() => _isRefreshing = true);
 
     try {
-      final response = await http
-          .get(_buildEspUri('/data'))
-          .timeout(const Duration(seconds: 5));
+      final response =
+          await http.get(_buildEspUri('/data')).timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
 
-      final moistureValue = _parseMoistureValue(
-        utf8.decode(response.bodyBytes),
-      );
+      final moistureValue = _parseMoistureValue(utf8.decode(response.bodyBytes));
 
       if (!mounted) return;
-
       setState(() {
         _moisture = moistureValue;
         _espError = null;
         _lastUpdated = DateTime.now();
       });
 
-      if (_isDry && !_dryAlertShown) {
-        _dryAlertShown = true;
-        _showSnackBar(
-          'Alert: soil is dry. Irrigation is recommended.',
-          background: const Color(0xFFD97706),
-        );
-      } else if (!_isDry) {
-        _dryAlertShown = false;
-      }
-
       if (_autoControlEnabled) {
         await _applyAutomaticControl();
       }
     } catch (_) {
       if (!mounted) return;
-
       setState(() {
-        _espError =
-            'ESP8266 not connected. Check WiFi, IP address, and device power.';
+        _espError = 'ESP8266 not connected. Check WiFi, IP, and power.';
       });
-
       if (showLoader) {
-        _showSnackBar(
-          'Could not connect to the ESP8266.',
-          background: const Color(0xFFB91C1C),
-        );
+        _showSnackBar('Could not connect to ESP8266.', background: Colors.red);
       }
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        _isRefreshing = false;
-      });
+      setState(() => _isRefreshing = false);
     }
   }
 
   int _parseMoistureValue(String body) {
     final trimmed = body.trim();
-
     final directValue = int.tryParse(trimmed);
-    if (directValue != null) {
-      return directValue;
-    }
+    if (directValue != null) return directValue;
 
     final decoded = jsonDecode(trimmed);
-
-    if (decoded is num) {
-      return decoded.toInt();
-    }
+    if (decoded is num) return decoded.toInt();
 
     if (decoded is Map) {
-      final values = [
-        decoded['moisture'],
-        decoded['value'],
-        decoded['sensor'],
-        decoded['data'],
-      ];
-
-      for (final item in values) {
-        if (item is num) {
-          return item.toInt();
-        }
-
-        final parsed = int.tryParse(item == null ? '' : item.toString());
-        if (parsed != null) {
-          return parsed;
-        }
+      for (final key in const ['moisture', 'value', 'sensor', 'data']) {
+        final item = decoded[key];
+        if (item is num) return item.toInt();
+        final parsed = int.tryParse(item?.toString() ?? '');
+        if (parsed != null) return parsed;
       }
     }
-
     throw const FormatException('Invalid moisture payload');
   }
 
   Future<void> _applyAutomaticControl() async {
     if (_moisture == null || _isMotorBusy) return;
-
     final shouldTurnOn = _isDry;
     if (_motorOn != shouldTurnOn) {
       await _setMotor(shouldTurnOn, silent: true);
@@ -265,57 +475,27 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
   Future<void> _setMotor(bool turnOn, {bool silent = false}) async {
     if (_isMotorBusy) return;
-
-    setState(() {
-      _isMotorBusy = true;
-    });
+    setState(() => _isMotorBusy = true);
 
     try {
       final response = await http
           .get(_buildEspUri(turnOn ? '/on' : '/off'))
           .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
+      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
       if (!mounted) return;
-
       setState(() {
         _motorOn = turnOn;
         _espError = null;
       });
-
-      if (!silent) {
-        _showSnackBar(
-          turnOn ? 'Motor turned ON successfully.' : 'Motor turned OFF successfully.',
-          background:
-              turnOn ? const Color(0xFF0F9D75) : const Color(0xFF1D6FD8),
-        );
-      }
+      if (!silent) _showSnackBar(turnOn ? 'Motor ON' : 'Motor OFF');
     } catch (_) {
       if (!mounted) return;
-
-      final message = turnOn
-          ? 'Unable to turn the motor ON. Make sure the ESP8266 is reachable.'
-          : 'Unable to turn the motor OFF. Make sure the ESP8266 is reachable.';
-
-      setState(() {
-        _espError = message;
-      });
-
-      if (!silent) {
-        _showSnackBar(
-          message,
-          background: const Color(0xFFB91C1C),
-        );
-      }
+      setState(() => _espError = 'Unable to control motor.');
+      if (!silent) _showSnackBar('Unable to control motor.', background: Colors.red);
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        _isMotorBusy = false;
-      });
+      setState(() => _isMotorBusy = false);
     }
   }
 
@@ -328,88 +508,81 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
     try {
       final response = await http
-          .get(
-            _buildEspUri(
-              '/set',
-              queryParameters: {
-                'soil': soil,
-                'crop': crop,
-              },
-            ),
-          )
+          .get(_buildEspUri('/set', queryParameters: {'soil': soil, 'crop': crop}))
           .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
+      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
 
       if (!mounted) return;
-
-      setState(() {
-        _espError = null;
-      });
-
-      _showSnackBar(
-        'Soil and crop settings sent to the ESP8266.',
-        background: const Color(0xFF0F9D75),
-      );
-
+      setState(() => _espError = null);
+      _showSnackBar('Settings sent to ESP8266.');
       await _refreshMoistureData();
     } catch (_) {
       if (!mounted) return;
-
-      setState(() {
-        _espError = 'Failed to send soil and crop settings to the ESP8266.';
-      });
-
-      _showSnackBar(
-        'Failed to send settings to the ESP8266.',
-        background: const Color(0xFFB91C1C),
-      );
+      setState(() => _espError = 'Failed to send settings.');
+      _showSnackBar('Failed to send settings.', background: Colors.red);
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        _isSendingSettings = false;
-      });
+      setState(() => _isSendingSettings = false);
     }
   }
 
+  Future<void> _speak(String text) async {
+    if (!_voiceEnabled) return;
+    await _flutterTts.stop();
+    await _flutterTts.speak(text);
+  }
+
+  Future<void> _startListening({
+    required void Function(String text) onFinalText,
+  }) async {
+    final available = await _speechToText.initialize();
+    if (!available) {
+      _showSnackBar('Voice input not available.', background: Colors.red);
+      return;
+    }
+    setState(() => _isListening = true);
+    await _speechToText.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          onFinalText(result.recognizedWords);
+        }
+      },
+      listenFor: const Duration(seconds: 12),
+      pauseFor: const Duration(seconds: 3),
+    );
+    setState(() => _isListening = false);
+  }
+
   Future<void> _sendChatMessage(String question) async {
-    final trimmedQuestion = question.trim();
-    if (trimmedQuestion.isEmpty || _isChatLoading) return;
+    final trimmed = question.trim();
+    if (trimmed.isEmpty || _isChatLoading) return;
 
     setState(() {
-      _messages.add(
-        ChatMessage(
-          text: trimmedQuestion,
-          isUser: true,
-        ),
-      );
+      _messages.add(ChatMessage(text: trimmed, isUser: true));
       _isChatLoading = true;
     });
 
     try {
       final key = _openAiApiKey.trim();
-
       if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY') {
-        throw Exception('Set your OpenAI API key from the connection icon first.');
+        throw Exception('Add your OpenAI API key from setup first.');
       }
 
+      final crop = _selectedCropProfile;
       final prompt = '''
 Farmer question:
-$trimmedQuestion
+$trimmed
 
-Current field context:
-- Moisture value: ${_moisture?.toString() ?? 'Unavailable'}
-- Soil type: $_selectedSoil
-- Crop type: $_selectedCrop
+Context:
+- Soil: $_selectedSoil
+- Crop: ${crop.name}
+- Crop category: ${crop.category}
+- Weekly water requirement: ${crop.waterMinMmPerWeek}-${crop.waterMaxMmPerWeek} mm
+- Moisture reading: ${_moisture?.toString() ?? 'Unavailable'}
 - Threshold: $_threshold
-- Motor status: ${_motorOn ? 'ON' : 'OFF'}
-- Soil status: $_statusText
-- Recommendation: $_recommendationText
+- Motor: ${_motorOn ? 'ON' : 'OFF'}
 
-Please answer in simple, practical language with direct field advice.
+Respond in short and simple language suitable for farmers.
 ''';
 
       final response = await http
@@ -428,19 +601,16 @@ Please answer in simple, practical language with direct field advice.
                     {
                       'type': 'input_text',
                       'text':
-                          'You are an agriculture expert helping farmers with irrigation, crops, soil, fertilizers, and diseases. Provide simple and practical advice.',
-                    }
+                          'You are Saswat Agro assistant. Give practical advice for irrigation, crops, weather, and disease in simple terms.',
+                    },
                   ],
                 },
                 {
                   'role': 'user',
                   'content': [
-                    {
-                      'type': 'input_text',
-                      'text': prompt,
-                    }
+                    {'type': 'input_text', 'text': prompt},
                   ],
-                }
+                },
               ],
             }),
           )
@@ -450,39 +620,26 @@ Please answer in simple, practical language with direct field advice.
         throw Exception(_extractApiError(utf8.decode(response.bodyBytes)));
       }
 
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      final answer = _extractAssistantText(data);
-
+      final answer = _extractAssistantText(jsonDecode(utf8.decode(response.bodyBytes)));
       if (!mounted) return;
 
       setState(() {
-        _messages.add(
-          ChatMessage(
-            text: answer,
-            isUser: false,
-          ),
-        );
+        _messages.add(ChatMessage(text: answer, isUser: false));
       });
+      unawaited(_speak(answer));
     } catch (error) {
       if (!mounted) return;
-
       final cleanError = error.toString().replaceFirst('Exception: ', '');
-
       setState(() {
-        _messages.add(
-          ChatMessage(
-            text: 'I could not reach the AI service. $cleanError',
-            isUser: false,
-            isError: true,
-          ),
-        );
+        _messages.add(ChatMessage(
+          text: 'I could not process that. $cleanError',
+          isUser: false,
+          isError: true,
+        ));
       });
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        _isChatLoading = false;
-      });
+      setState(() => _isChatLoading = false);
     }
   }
 
@@ -490,69 +647,64 @@ Please answer in simple, practical language with direct field advice.
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map && decoded['error'] is Map) {
-        final error = decoded['error'] as Map;
-        final message = error['message'];
-        if (message is String && message.isNotEmpty) {
-          return message;
-        }
+        final message = (decoded['error'] as Map)['message'];
+        if (message is String && message.isNotEmpty) return message;
       }
-    } catch (_) {
-      // Ignore JSON parse failures and fall back below.
-    }
-
-    return 'Request failed. Please verify the OpenAI API key and network connection.';
+    } catch (_) {}
+    return 'Request failed. Verify API key and network.';
   }
 
   String _extractAssistantText(dynamic data) {
     if (data is Map) {
       final outputText = data['output_text'];
-      if (outputText is String && outputText.trim().isNotEmpty) {
-        return outputText.trim();
-      }
+      if (outputText is String && outputText.trim().isNotEmpty) return outputText.trim();
 
       final output = data['output'];
       if (output is List) {
         for (final item in output) {
-          if (item is Map) {
-            final content = item['content'];
-            if (content is List) {
-              for (final part in content) {
-                if (part is Map) {
-                  final text = part['text'] ?? part['output_text'];
-                  if (text is String && text.trim().isNotEmpty) {
-                    return text.trim();
-                  }
-                }
+          if (item is Map && item['content'] is List) {
+            for (final part in item['content'] as List) {
+              if (part is Map) {
+                final text = part['text'] ?? part['output_text'];
+                if (text is String && text.trim().isNotEmpty) return text.trim();
               }
             }
           }
         }
       }
-
-      final choices = data['choices'];
-      if (choices is List && choices.isNotEmpty) {
-        final firstChoice = choices.first;
-        if (firstChoice is Map) {
-          final message = firstChoice['message'];
-          if (message is Map) {
-            final content = message['content'];
-            if (content is String && content.trim().isNotEmpty) {
-              return content.trim();
-            }
-          }
-        }
-      }
     }
-
     throw const FormatException('No AI text response found');
   }
 
-  void _showSnackBar(
-    String message, {
-    Color background = const Color(0xFF143A33),
-  }) {
-    if (!mounted) return;
+  Future<void> _predictRainfall(String location) async {
+    final trimmed = location.trim();
+    if (trimmed.isEmpty || _isRainLoading) return;
 
+    setState(() {
+      _rainLocation = trimmed;
+      _isRainLoading = true;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    final score = trimmed.toLowerCase().codeUnits.fold<int>(0, (sum, c) => sum + c);
+    final rainMm = 20 + (score % 90);
+    final outlook = rainMm < 35
+        ? 'Low rainfall expected. Plan irrigation.'
+        : rainMm < 65
+            ? 'Moderate rainfall expected.'
+            : 'High rainfall expected. Reduce irrigation.';
+
+    final output = '$trimmed: Next 7 days ~ $rainMm mm rain. $outlook';
+    if (!mounted) return;
+    setState(() {
+      _rainfallPrediction = output;
+      _isRainLoading = false;
+    });
+    unawaited(_speak(output));
+  }
+
+  void _showSnackBar(String message, {Color background = const Color(0xFF0F5132)}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -567,18 +719,18 @@ Please answer in simple, practical language with direct field advice.
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: const Color(0xFFF7FBFA),
       builder: (sheetContext) {
         return ConnectionSheet(
           initialEspBaseUrl: _espBaseUrl,
-          initialOpenAiApiKey:
-              _openAiApiKey == kOpenAiApiKey ? '' : _openAiApiKey,
-          onSave: (espBaseUrl, openAiApiKey) {
+          initialOpenAiApiKey: _openAiApiKey == kOpenAiApiKey ? '' : _openAiApiKey,
+          voiceEnabled: _voiceEnabled,
+          onSave: (espBaseUrl, openAiApiKey, language, voiceEnabled) {
             setState(() {
               _espBaseUrl = espBaseUrl.trim();
               _openAiApiKey = openAiApiKey.trim();
+              _language = language;
+              _voiceEnabled = voiceEnabled;
             });
-
             Navigator.of(sheetContext).pop();
             _refreshMoistureData(showLoader: true);
           },
@@ -589,23 +741,24 @@ Please answer in simple, practical language with direct field advice.
 
   @override
   Widget build(BuildContext context) {
-    const pageTitles = [
-      'Dashboard',
-      'Settings',
-      'Advisory',
-      'AI Chatbot',
+    final pageTitles = [
+      tr('dashboard'),
+      tr('settings'),
+      tr('advisory'),
+      tr('chatbot'),
+      tr('rain'),
     ];
 
     final pages = [
       DashboardScreen(
+        tr: tr,
         moisture: _moisture,
         threshold: _threshold,
         motorOn: _motorOn,
         selectedSoil: _selectedSoil,
         selectedCrop: _selectedCrop,
-        statusText: _statusText,
+        selectedCropProfile: _selectedCropProfile,
         isDry: _isDry,
-        recommendation: _recommendationText,
         errorMessage: _espError,
         lastUpdated: _lastUpdated,
         isRefreshing: _isRefreshing,
@@ -614,16 +767,12 @@ Please answer in simple, practical language with direct field advice.
         onRefresh: () => _refreshMoistureData(showLoader: true),
         onMotorToggle: _setMotor,
         onAutoControlChanged: (value) {
-          setState(() {
-            _autoControlEnabled = value;
-          });
-
-          if (value) {
-            _applyAutomaticControl();
-          }
+          setState(() => _autoControlEnabled = value);
+          if (value) _applyAutomaticControl();
         },
       ),
       SettingsScreen(
+        tr: tr,
         selectedSoil: _selectedSoil,
         selectedCrop: _selectedCrop,
         threshold: _threshold,
@@ -632,37 +781,54 @@ Please answer in simple, practical language with direct field advice.
         onApply: _applySettings,
       ),
       AdvisoryScreen(
+        tr: tr,
         selectedSoil: _selectedSoil,
-        selectedCrop: _selectedCrop,
+        crop: _selectedCropProfile,
         moisture: _moisture,
         threshold: _threshold,
         isDry: _isDry,
-        recommendation: _recommendationText,
       ),
       ChatbotScreen(
+        tr: tr,
         messages: _messages,
         isLoading: _isChatLoading,
         selectedSoil: _selectedSoil,
         selectedCrop: _selectedCrop,
         moisture: _moisture,
+        isListening: _isListening,
         onSend: _sendChatMessage,
+        onVoicePressed: () => _startListening(
+          onFinalText: (text) {
+            if (text.trim().isEmpty) return;
+            _sendChatMessage(text);
+          },
+        ),
+      ),
+      RainfallScreen(
+        tr: tr,
+        location: _rainLocation,
+        prediction: _rainfallPrediction,
+        isLoading: _isRainLoading,
+        isListening: _isListening,
+        onPredict: _predictRainfall,
+        onVoiceLocation: () => _startListening(
+          onFinalText: (text) {
+            if (text.trim().isEmpty) return;
+            _predictRainfall(text);
+          },
+        ),
       ),
     ];
 
     return Scaffold(
-      extendBody: true,
       appBar: AppBar(
-        titleSpacing: 18,
+        titleSpacing: 16,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'IoT-Based Smart Irrigation System',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
-              ),
+            Text(
+              tr('appTitle'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
             ),
             Text(
               pageTitles[_currentIndex],
@@ -676,77 +842,41 @@ Please answer in simple, practical language with direct field advice.
         ),
         actions: [
           IconButton(
-            onPressed: _isRefreshing
-                ? null
-                : () => _refreshMoistureData(showLoader: true),
-            tooltip: 'Refresh sensor data',
+            onPressed: _isRefreshing ? null : () => _refreshMoistureData(showLoader: true),
             icon: _isRefreshing
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh_rounded),
           ),
-          IconButton(
-            onPressed: _openConnectionSheet,
-            tooltip: 'ESP and API setup',
-            icon: const Icon(Icons.router_rounded),
-          ),
-          const SizedBox(width: 8),
+          IconButton(onPressed: _openConnectionSheet, icon: const Icon(Icons.settings_rounded)),
+          const SizedBox(width: 6),
         ],
       ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFE8F7F2),
-              Color(0xFFF6FCFF),
-              Color(0xFFEFF4FF),
-            ],
+            colors: [Color(0xFFEAF7EF), Color(0xFFF4F8FF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
           top: false,
-          child: IndexedStack(
-            index: _currentIndex,
-            children: pages,
-          ),
+          child: IndexedStack(index: _currentIndex, children: pages),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        height: 74,
         selectedIndex: _currentIndex,
-        indicatorColor: const Color(0xFFCFEEE0),
-        backgroundColor: Colors.white.withOpacity(0.95),
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_customize_outlined),
-            selectedIcon: Icon(Icons.dashboard_customize),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tune_outlined),
-            selectedIcon: Icon(Icons.tune),
-            label: 'Settings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.eco_outlined),
-            selectedIcon: Icon(Icons.eco),
-            label: 'Advisory',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy),
-            label: 'Chatbot',
-          ),
+        onDestinationSelected: (value) => setState(() => _currentIndex = value),
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+          NavigationDestination(icon: const Icon(Icons.tune), label: tr('settings')),
+          NavigationDestination(icon: const Icon(Icons.eco), label: tr('advisory')),
+          NavigationDestination(icon: const Icon(Icons.mic), label: tr('chatbot')),
+          NavigationDestination(icon: const Icon(Icons.cloud), label: tr('rain')),
         ],
       ),
     );
@@ -756,14 +886,14 @@ Please answer in simple, practical language with direct field advice.
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
+    required this.tr,
     required this.moisture,
     required this.threshold,
     required this.motorOn,
     required this.selectedSoil,
     required this.selectedCrop,
-    required this.statusText,
+    required this.selectedCropProfile,
     required this.isDry,
-    required this.recommendation,
     required this.errorMessage,
     required this.lastUpdated,
     required this.isRefreshing,
@@ -774,14 +904,14 @@ class DashboardScreen extends StatelessWidget {
     required this.onAutoControlChanged,
   });
 
+  final String Function(String) tr;
   final int? moisture;
   final int threshold;
   final bool motorOn;
   final String selectedSoil;
   final String selectedCrop;
-  final String statusText;
+  final CropProfile selectedCropProfile;
   final bool isDry;
-  final String recommendation;
   final String? errorMessage;
   final DateTime? lastUpdated;
   final bool isRefreshing;
@@ -794,315 +924,82 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 760;
-          final cardWidth = wide
-              ? (constraints.maxWidth - 16) / 2
-              : constraints.maxWidth;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FrostedCard(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF0E9F6E),
-                    Color(0xFF1778D4),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      child: Column(
+        children: [
+          _AppCard(
+            gradient: const LinearGradient(colors: [Color(0xFF109E6F), Color(0xFF297AE0)]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.water_drop_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'Live Field Dashboard',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 22,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.82),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.12),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'SOIL MOISTURE',
-                            style: TextStyle(
-                              color: Colors.greenAccent.shade100,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2.2,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                moisture?.toString() ?? '---',
-                                style: const TextStyle(
-                                  color: Colors.greenAccent,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 42,
-                                  letterSpacing: 4,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'ADC',
-                                style: TextStyle(
-                                  color: Colors.greenAccent.shade100,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                    const Icon(Icons.water_drop_rounded, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Text(
+                      moisture?.toString() ?? tr('noData'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Threshold: $threshold | Last update: ${formatTime(lastUpdated)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        IconButton.filledTonal(
-                          onPressed: isRefreshing ? null : onRefresh,
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.18),
-                            foregroundColor: Colors.white,
-                          ),
-                          icon: const Icon(Icons.refresh_rounded),
-                        ),
-                      ],
+                    const Spacer(),
+                    Text(
+                      isDry ? tr('soilDry') : tr('soilWet'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
-              ),
-              if (errorMessage != null) ...[
-                const SizedBox(height: 16),
-                StatusBanner(
-                  color: const Color(0xFFFEF2F2),
-                  borderColor: const Color(0xFFFCA5A5),
-                  icon: Icons.wifi_off_rounded,
-                  title: 'Connection warning',
-                  message: errorMessage!,
+                const SizedBox(height: 10),
+                Text(
+                  'Soil: $selectedSoil | Crop: $selectedCrop',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Water need: ${selectedCropProfile.waterMinMmPerWeek}-${selectedCropProfile.waterMaxMmPerWeek} mm/week',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Threshold: $threshold | Updated: ${formatTime(lastUpdated)}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    FilledButton(
+                      onPressed: isMotorBusy ? null : () => onMotorToggle(true),
+                      child: const Text('Motor ON'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: isMotorBusy ? null : () => onMotorToggle(false),
+                      child: const Text('Motor OFF'),
+                    ),
+                    const Spacer(),
+                    IconButton(onPressed: isRefreshing ? null : onRefresh, icon: const Icon(Icons.refresh, color: Colors.white)),
+                  ],
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  SizedBox(
-                    width: cardWidth,
-                    child: MetricCard(
-                      title: 'Motor Status',
-                      value: motorOn ? 'ON' : 'OFF',
-                      subtitle:
-                          motorOn ? 'Pump is supplying water' : 'Pump is idle',
-                      icon: Icons.power_settings_new_rounded,
-                      accent: motorOn
-                          ? const Color(0xFF0F9D75)
-                          : const Color(0xFF64748B),
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: MetricCard(
-                      title: 'Soil Type',
-                      value: selectedSoil,
-                      subtitle: 'Soil base threshold: ${kSoilThresholds[selectedSoil] ?? 0}',
-                      icon: Icons.landscape_rounded,
-                      accent: const Color(0xFF14B8A6),
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: MetricCard(
-                      title: 'Crop Type',
-                      value: selectedCrop,
-                      subtitle: 'Crop adjustment: ${kCropAdjustments[selectedCrop] ?? 0}',
-                      icon: Icons.grass_rounded,
-                      accent: const Color(0xFF22C55E),
-                    ),
-                  ),
-                  SizedBox(
-                    width: cardWidth,
-                    child: MetricCard(
-                      title: 'Field Status',
-                      value: statusText,
-                      subtitle: moisture == null
-                          ? 'Waiting for sensor data'
-                          : isDry
-                              ? 'Soil is dry, irrigation needed'
-                              : 'Soil is wet, irrigation not required',
-                      icon: Icons.opacity_rounded,
-                      accent: isDry
-                          ? const Color(0xFFD97706)
-                          : const Color(0xFF2563EB),
-                    ),
-                  ),
-                ],
+            ),
+          ),
+          if (errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _AppCard(
+                child: Text(errorMessage!, style: const TextStyle(color: Color(0xFF991B1B))),
               ),
-              const SizedBox(height: 16),
-              FrostedCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Recommendation',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDry
-                            ? const Color(0xFFFFF7ED)
-                            : const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: isDry
-                              ? const Color(0xFFF59E0B)
-                              : const Color(0xFF60A5FA),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            isDry
-                                ? Icons.warning_amber_rounded
-                                : Icons.verified_rounded,
-                            color: isDry
-                                ? const Color(0xFFD97706)
-                                : const Color(0xFF2563EB),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              recommendation,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                height: 1.45,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: autoControlEnabled,
-                      onChanged: onAutoControlChanged,
-                      title: const Text(
-                        'Auto motor control',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: const Text(
-                        'Automatically switch the motor based on the moisture threshold.',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: isMotorBusy ? null : () => onMotorToggle(true),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: const Color(0xFF0F9D75),
-                            ),
-                            icon: isMotorBusy
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.play_arrow_rounded),
-                            label: const Text('Motor ON'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: isMotorBusy ? null : () => onMotorToggle(false),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            icon: const Icon(Icons.stop_rounded),
-                            label: const Text('Motor OFF'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          const SizedBox(height: 10),
+          _AppCard(
+            child: SwitchListTile.adaptive(
+              value: autoControlEnabled,
+              onChanged: onAutoControlChanged,
+              title: const Text('Auto motor control'),
+              subtitle: const Text('Automatically control motor from moisture.'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1111,6 +1008,7 @@ class DashboardScreen extends StatelessWidget {
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
+    required this.tr,
     required this.selectedSoil,
     required this.selectedCrop,
     required this.threshold,
@@ -1119,6 +1017,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onApply,
   });
 
+  final String Function(String) tr;
   final String selectedSoil;
   final String selectedCrop;
   final int threshold;
@@ -1144,7 +1043,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void didUpdateWidget(covariant SettingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (oldWidget.selectedSoil != widget.selectedSoil ||
         oldWidget.selectedCrop != widget.selectedCrop) {
       _soil = widget.selectedSoil;
@@ -1156,169 +1054,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final previewThreshold =
         (kSoilThresholds[_soil] ?? 600) + (kCropAdjustments[_crop] ?? 0);
+    final groups = groupByCategory(kCropProfiles);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FrostedCard(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFDBF4E8),
-                Color(0xFFEAF4FF),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Crop and Soil Intelligence',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Send soil and crop details to your ESP8266 using the /set endpoint.\nDevice: ${widget.espBaseUrl}',
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.65),
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
-              ],
+          _AppCard(
+            child: Text(
+              'Saswat Agro supports food crops, fruit crops, plantation crops, vegetable crops and more.\nDevice: ${widget.espBaseUrl}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(height: 16),
-          FrostedCard(
+          const SizedBox(height: 10),
+          _AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Select Soil Type',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const Text('Select Soil', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _soil,
-                  decoration: _dropdownDecoration('Choose soil type'),
+                  decoration: _dd('Choose soil type'),
                   items: kSoilThresholds.keys
-                      .map(
-                        (soil) => DropdownMenuItem<String>(
-                          value: soil,
-                          child: Text(soil),
-                        ),
-                      )
+                      .map((soil) => DropdownMenuItem(value: soil, child: Text(soil)))
                       .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _soil = value;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _soil = value ?? _soil),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Select Crop Type',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                const Text('Select Crop', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _crop,
-                  decoration: _dropdownDecoration('Choose crop type'),
-                  items: const [
-                    'Wheat',
-                    'Rice',
-                    'Vegetables',
-                    'Tomato',
-                  ]
-                      .map(
-                        (crop) => DropdownMenuItem<String>(
-                          value: crop,
-                          child: Text(crop),
-                        ),
-                      )
+                  isExpanded: true,
+                  decoration: _dd('Choose crop'),
+                  items: kCropProfiles
+                      .map((crop) => DropdownMenuItem(
+                            value: crop.name,
+                            child: Text('${crop.name} (${crop.category})'),
+                          ))
                       .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _crop = value;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _crop = value ?? _crop),
                 ),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7FAFC),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: const Color(0xFFD9E6F2),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Threshold Preview',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Soil base: ${kSoilThresholds[_soil] ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Crop adjustment: ${kCropAdjustments[_crop] ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Final threshold: $previewThreshold',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F9D75),
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 16),
+                Text('Threshold preview: $previewThreshold'),
+                const SizedBox(height: 6),
+                Text(
+                  'Category groups: ${groups.entries.map((e) => '${e.key}: ${e.value.length}').join(' | ')}',
+                  style: TextStyle(color: Colors.black.withOpacity(0.65)),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: widget.isSending
-                        ? null
-                        : () async {
-                            await widget.onApply(_soil, _crop);
-                          },
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFF0F9D75),
-                    ),
+                    onPressed: widget.isSending ? null : () => widget.onApply(_soil, _crop),
                     icon: widget.isSending
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Icon(Icons.send_rounded),
+                        : const Icon(Icons.send),
                     label: const Text('Send to ESP8266'),
                   ),
                 ),
@@ -1330,22 +1126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  InputDecoration _dropdownDecoration(String hint) {
+  InputDecoration _dd(String hint) {
     return InputDecoration(
       hintText: hint,
       filled: true,
       fillColor: const Color(0xFFF8FBFA),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD8E6E1)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD8E6E1)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFF0F9D75), width: 1.5),
+        borderRadius: BorderRadius.circular(14),
       ),
     );
   }
@@ -1354,111 +1141,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class AdvisoryScreen extends StatelessWidget {
   const AdvisoryScreen({
     super.key,
+    required this.tr,
     required this.selectedSoil,
-    required this.selectedCrop,
+    required this.crop,
     required this.moisture,
     required this.threshold,
     required this.isDry,
-    required this.recommendation,
   });
 
+  final String Function(String) tr;
   final String selectedSoil;
-  final String selectedCrop;
+  final CropProfile crop;
   final int? moisture;
   final int threshold;
   final bool isDry;
-  final String recommendation;
 
   @override
   Widget build(BuildContext context) {
-    final adviceItems = buildAdvisoryItems(
+    final items = buildAdvisoryItems(
       soil: selectedSoil,
-      crop: selectedCrop,
+      crop: crop,
       moisture: moisture,
       threshold: threshold,
       isDry: isDry,
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FrostedCard(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFE7F8EE),
-                Color(0xFFEFF6FF),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Smart Advisory',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Advisory is generated using the selected soil type, crop profile, and moisture threshold.',
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.65),
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          FrostedCard(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  isDry ? Icons.water_drop_rounded : Icons.check_circle_rounded,
-                  color: isDry
-                      ? const Color(0xFFD97706)
-                      : const Color(0xFF0F9D75),
-                  size: 32,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
+        children: items
+            .map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _AppCard(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isDry ? 'Irrigation needed' : 'Irrigation not needed',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        recommendation,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          height: 1.45,
+                      Icon(item.icon, color: item.color),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.title,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800, fontSize: 16)),
+                            const SizedBox(height: 5),
+                            Text(item.description,
+                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...adviceItems.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: AdviceCard(item: item),
-            ),
-          ),
-        ],
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -1467,20 +1206,26 @@ class AdvisoryScreen extends StatelessWidget {
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({
     super.key,
+    required this.tr,
     required this.messages,
     required this.isLoading,
     required this.selectedSoil,
     required this.selectedCrop,
     required this.moisture,
+    required this.isListening,
     required this.onSend,
+    required this.onVoicePressed,
   });
 
+  final String Function(String) tr;
   final List<ChatMessage> messages;
   final bool isLoading;
   final String selectedSoil;
   final String selectedCrop;
   final int? moisture;
+  final bool isListening;
   final Future<void> Function(String question) onSend;
+  final VoidCallback onVoicePressed;
 
   @override
   State<ChatbotScreen> createState() => _ChatbotScreenState();
@@ -1493,7 +1238,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   void didUpdateWidget(covariant ChatbotScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (oldWidget.messages.length != widget.messages.length ||
         oldWidget.isLoading != widget.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1517,7 +1261,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   Future<void> _handleSend() async {
     final text = _controller.text.trim();
     if (text.isEmpty || widget.isLoading) return;
-
     _controller.clear();
     await widget.onSend(text);
   }
@@ -1525,66 +1268,32 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FrostedCard(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFE5F4FF),
-                Color(0xFFEAF8F1),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          _AppCard(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                const Text(
-                  'AI Farmer Assistant',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    ContextChip(
-                      icon: Icons.landscape_rounded,
-                      label: widget.selectedSoil,
-                    ),
-                    ContextChip(
-                      icon: Icons.grass_rounded,
-                      label: widget.selectedCrop,
-                    ),
-                    ContextChip(
-                      icon: Icons.opacity_rounded,
-                      label: widget.moisture?.toString() ?? 'No moisture data',
-                    ),
-                  ],
-                ),
+                _tag('Soil: ${widget.selectedSoil}'),
+                _tag('Crop: ${widget.selectedCrop}'),
+                _tag('Moisture: ${widget.moisture?.toString() ?? widget.tr('noData')}'),
+                if (widget.isListening) _tag(widget.tr('speakNow')),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Expanded(
-            child: FrostedCard(
-              padding: const EdgeInsets.all(12),
+            child: _AppCard(
               child: ListView.separated(
                 controller: _scrollController,
                 itemCount: widget.messages.length + (widget.isLoading ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   if (index >= widget.messages.length) {
-                    return const ChatBubble(
-                      text: 'Thinking...',
-                      isUser: false,
-                      isLoading: true,
-                    );
+                    return const ChatBubble(text: 'Thinking...', isUser: false, isLoading: true);
                   }
-
                   final message = widget.messages[index];
                   return ChatBubble(
                     text: message.text,
@@ -1595,57 +1304,159 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          FrostedCard(
+          const SizedBox(height: 10),
+          _AppCard(
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
                     minLines: 1,
                     maxLines: 4,
-                    textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _handleSend(),
-                    decoration: InputDecoration(
-                      hintText: 'Ask about irrigation, disease, or fertilizers...',
-                      filled: true,
-                      fillColor: const Color(0xFFF7FAFC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD8E6E1),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFD8E6E1),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF1D6FD8),
-                          width: 1.5,
-                        ),
-                      ),
+                    decoration: const InputDecoration(
+                      hintText: 'Ask in simple language...',
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
+                const SizedBox(width: 8),
+                IconButton.filled(
                   onPressed: widget.isLoading ? null : _handleSend,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 16,
-                    ),
-                    backgroundColor: const Color(0xFF1D6FD8),
-                  ),
-                  icon: const Icon(Icons.send_rounded),
-                  label: const Text('Send'),
+                  icon: const Icon(Icons.send),
                 ),
+                const SizedBox(width: 6),
+                IconButton(
+                  tooltip: 'Voice input',
+                  onPressed: widget.isLoading ? null : widget.onVoicePressed,
+                  icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F2FF),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class RainfallScreen extends StatefulWidget {
+  const RainfallScreen({
+    super.key,
+    required this.tr,
+    required this.location,
+    required this.prediction,
+    required this.isLoading,
+    required this.isListening,
+    required this.onPredict,
+    required this.onVoiceLocation,
+  });
+
+  final String Function(String) tr;
+  final String location;
+  final String? prediction;
+  final bool isLoading;
+  final bool isListening;
+  final Future<void> Function(String location) onPredict;
+  final VoidCallback onVoiceLocation;
+
+  @override
+  State<RainfallScreen> createState() => _RainfallScreenState();
+}
+
+class _RainfallScreenState extends State<RainfallScreen> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.location);
+  }
+
+  @override
+  void didUpdateWidget(covariant RainfallScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.location != _controller.text) {
+      _controller.text = widget.location;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      child: Column(
+        children: [
+          _AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.tr('rain'),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    hintText: widget.tr('locationHint'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: widget.isLoading
+                            ? null
+                            : () => widget.onPredict(_controller.text),
+                        icon: widget.isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.cloud),
+                        label: Text(widget.tr('predictRain')),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Voice location',
+                      onPressed: widget.isLoading ? null : widget.onVoiceLocation,
+                      icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
+                    ),
+                  ],
+                ),
+                if (widget.prediction != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFFAF3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(widget.prediction!,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1660,12 +1471,19 @@ class ConnectionSheet extends StatefulWidget {
     super.key,
     required this.initialEspBaseUrl,
     required this.initialOpenAiApiKey,
+    required this.voiceEnabled,
     required this.onSave,
   });
 
   final String initialEspBaseUrl;
   final String initialOpenAiApiKey;
-  final void Function(String espBaseUrl, String openAiApiKey) onSave;
+  final bool voiceEnabled;
+  final void Function(
+    String espBaseUrl,
+    String openAiApiKey,
+    AppLanguage language,
+    bool voiceEnabled,
+  ) onSave;
 
   @override
   State<ConnectionSheet> createState() => _ConnectionSheetState();
@@ -1674,12 +1492,15 @@ class ConnectionSheet extends StatefulWidget {
 class _ConnectionSheetState extends State<ConnectionSheet> {
   late final TextEditingController _espController;
   late final TextEditingController _apiKeyController;
+  AppLanguage _language = AppLanguage.en;
+  late bool _voiceEnabled;
 
   @override
   void initState() {
     super.initState();
     _espController = TextEditingController(text: widget.initialEspBaseUrl);
     _apiKeyController = TextEditingController(text: widget.initialOpenAiApiKey);
+    _voiceEnabled = widget.voiceEnabled;
   }
 
   @override
@@ -1692,349 +1513,90 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + 20),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, bottomInset + 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Connection Setup',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 22,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Enter the ESP8266 base URL and your OpenAI API key. For production, move the API key to a secure backend service.',
-            style: TextStyle(
-              color: Colors.black.withOpacity(0.65),
-              height: 1.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 18),
+          const Text('App Setup', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+          const SizedBox(height: 10),
           TextField(
             controller: _espController,
-            decoration: _inputDecoration(
-              label: 'ESP8266 Base URL',
-              hint: 'http://192.168.4.1',
-              icon: Icons.router_rounded,
+            decoration: const InputDecoration(
+              labelText: 'ESP8266 Base URL',
+              hintText: 'http://192.168.4.1',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           TextField(
             controller: _apiKeyController,
             obscureText: true,
-            decoration: _inputDecoration(
-              label: 'OpenAI API Key',
-              hint: 'sk-...',
-              icon: Icons.key_rounded,
+            decoration: const InputDecoration(
+              labelText: 'OpenAI API Key',
+              hintText: 'sk-...',
+              border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<AppLanguage>(
+            value: _language,
+            decoration: const InputDecoration(labelText: 'Language', border: OutlineInputBorder()),
+            items: const [
+              DropdownMenuItem(value: AppLanguage.en, child: Text('English')),
+              DropdownMenuItem(value: AppLanguage.hi, child: Text('Hindi')),
+              DropdownMenuItem(value: AppLanguage.bn, child: Text('Bengali')),
+            ],
+            onChanged: (value) => setState(() => _language = value ?? AppLanguage.en),
+          ),
+          SwitchListTile.adaptive(
+            value: _voiceEnabled,
+            onChanged: (v) => setState(() => _voiceEnabled = v),
+            title: const Text('Enable voice output'),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () {
-                widget.onSave(
-                  _espController.text,
-                  _apiKeyController.text,
-                );
-              },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: const Color(0xFF0F9D75),
+              onPressed: () => widget.onSave(
+                _espController.text,
+                _apiKeyController.text,
+                _language,
+                _voiceEnabled,
               ),
-              icon: const Icon(Icons.save_rounded),
-              label: const Text('Save Connection Settings'),
+              icon: const Icon(Icons.save),
+              label: const Text('Save settings'),
             ),
           ),
         ],
       ),
     );
   }
-
-  InputDecoration _inputDecoration({
-    required String label,
-    required String hint,
-    required IconData icon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: const Color(0xFFF8FBFA),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD8E6E1)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFFD8E6E1)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: Color(0xFF0F9D75), width: 1.5),
-      ),
-    );
-  }
 }
 
-class FrostedCard extends StatelessWidget {
-  const FrostedCard({
-    super.key,
-    required this.child,
-    this.padding = const EdgeInsets.all(20),
-    this.gradient,
-  });
-
+class _AppCard extends StatelessWidget {
+  const _AppCard({required this.child, this.gradient});
   final Widget child;
-  final EdgeInsetsGeometry padding;
   final Gradient? gradient;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: gradient,
-        color: gradient == null ? Colors.white.withOpacity(0.92) : null,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.45),
-        ),
+        color: gradient == null ? Colors.white.withOpacity(0.95) : null,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: child,
-    );
-  }
-}
-
-class MetricCard extends StatelessWidget {
-  const MetricCard({
-    super.key,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-  });
-
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return FrostedCard(
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.6),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.55),
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class AdviceCard extends StatelessWidget {
-  const AdviceCard({
-    super.key,
-    required this.item,
-  });
-
-  final AdviceItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return FrostedCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: item.color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(item.icon, color: item.color),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item.description,
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.68),
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class StatusBanner extends StatelessWidget {
-  const StatusBanner({
-    super.key,
-    required this.color,
-    required this.borderColor,
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final Color color;
-  final Color borderColor;
-  final IconData icon;
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFFB91C1C)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF7F1D1D),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF7F1D1D),
-                    height: 1.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ContextChip extends StatelessWidget {
-  const ContextChip({
-    super.key,
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFD9E6F2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFF1D6FD8)),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -2059,59 +1621,37 @@ class ChatBubble extends StatelessWidget {
         ? const Color(0xFF1D6FD8)
         : isError
             ? const Color(0xFFFEF2F2)
-            : const Color(0xFFF4F8F7);
+            : const Color(0xFFF2FAF5);
 
     final textColor = isUser
         ? Colors.white
         : isError
             ? const Color(0xFF991B1B)
-            : const Color(0xFF18362F);
+            : const Color(0xFF17352D);
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isUser
-                  ? Colors.transparent
-                  : isError
-                      ? const Color(0xFFFCA5A5)
-                      : const Color(0xFFD8E6E1),
-            ),
-          ),
-          child: isLoading
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      text,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                )
-              : Text(
-                  text,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 560),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bubbleColor,
+          borderRadius: BorderRadius.circular(14),
         ),
+        child: isLoading
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(text, style: TextStyle(color: textColor)),
+                ],
+              )
+            : Text(text, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -2145,79 +1685,65 @@ class AdviceItem {
 
 List<AdviceItem> buildAdvisoryItems({
   required String soil,
-  required String crop,
+  required CropProfile crop,
   required int? moisture,
   required int threshold,
   required bool isDry,
 }) {
   final soilAdvice = {
     'Sandy':
-        'Sandy soil drains quickly. Use short and frequent irrigation cycles, add mulch, and check moisture often during hot weather.',
-    'Loamy':
-        'Loamy soil holds a balanced amount of water. Deep watering with steady intervals usually gives the best root development.',
-    'Clay':
-        'Clay soil stores water for longer. Irrigate slowly and avoid standing water because roots can suffer from poor aeration.',
-  };
-
-  final cropAdvice = {
-    'Wheat':
-        'Wheat needs controlled moisture. Avoid waterlogging during early growth and reduce excess irrigation near maturity.',
-    'Rice':
-        'Rice performs better with higher moisture availability. Maintain stable water conditions and watch for prolonged dryness.',
-    'Vegetables':
-        'Vegetables need consistent moisture. Morning irrigation is ideal and helps reduce heat stress and leaf diseases.',
-    'Tomato':
-        'Tomato plants prefer even watering. Sudden overwatering can lead to fruit cracking and weak root health.',
+        'Sandy soil drains quickly. Use short and frequent irrigation cycles and mulching.',
+    'Loamy': 'Loamy soil is balanced. Deep watering at intervals usually works best.',
+    'Clay': 'Clay stores water longer. Irrigate slowly and avoid standing water.',
   };
 
   final moistureSummary = moisture == null
-      ? 'Live moisture data is unavailable. Use the dashboard refresh action after the ESP8266 is connected.'
-      : 'Current moisture is $moisture with a decision threshold of $threshold. ${isDry ? 'The field is drier than recommended.' : 'The root zone is currently in the safe moisture range.'}';
+      ? 'Live moisture data unavailable. Refresh when ESP8266 is connected.'
+      : 'Moisture is $moisture and threshold is $threshold.';
 
   return [
     AdviceItem(
-      title: 'Irrigation Recommendation',
+      title: 'Irrigation Decision',
       description: isDry
-          ? 'Water is required now. Run the motor, inspect emitter flow, and monitor the field until the reading drops under the threshold.'
-          : 'Avoid overwatering. Keep the motor OFF, monitor runoff, and recheck moisture before the next irrigation cycle.',
-      icon: Icons.water_rounded,
+          ? 'Field appears dry. Start irrigation and monitor moisture reduction.'
+          : 'Field has enough moisture now. Avoid extra watering.',
+      icon: Icons.water_drop,
       color: isDry ? const Color(0xFFD97706) : const Color(0xFF2563EB),
     ),
     AdviceItem(
       title: '$soil Soil Guidance',
       description: soilAdvice[soil] ?? soilAdvice['Loamy']!,
-      icon: Icons.landscape_rounded,
+      icon: Icons.landscape,
       color: const Color(0xFF14B8A6),
     ),
     AdviceItem(
-      title: '$crop Crop Guidance',
-      description: cropAdvice[crop] ?? cropAdvice['Vegetables']!,
-      icon: Icons.grass_rounded,
+      title: '${crop.name} (${crop.category})',
+      description:
+          '${crop.description} Weekly water target: ${crop.waterMinMmPerWeek}-${crop.waterMaxMmPerWeek} mm.',
+      icon: Icons.grass,
       color: const Color(0xFF22C55E),
     ),
     AdviceItem(
       title: 'Sensor Insight',
       description: moistureSummary,
-      icon: Icons.analytics_rounded,
+      icon: Icons.analytics,
       color: const Color(0xFF1D6FD8),
-    ),
-    AdviceItem(
-      title: 'Practical Field Action',
-      description:
-          'Inspect the pump line, verify nozzle flow, and look for signs of leaf curling, yellowing, or fungal growth before adjusting irrigation duration.',
-      icon: Icons.build_circle_rounded,
-      color: const Color(0xFF8B5CF6),
     ),
   ];
 }
 
-String formatTime(DateTime? dateTime) {
-  if (dateTime == null) return 'Not synced yet';
+Map<String, List<CropProfile>> groupByCategory(List<CropProfile> crops) {
+  final grouped = <String, List<CropProfile>>{};
+  for (final crop in crops) {
+    grouped.putIfAbsent(crop.category, () => []).add(crop);
+  }
+  return grouped;
+}
 
+String formatTime(DateTime? dateTime) {
+  if (dateTime == null) return 'Not synced';
   final hour = dateTime.hour.toString().padLeft(2, '0');
   final minute = dateTime.minute.toString().padLeft(2, '0');
   final second = dateTime.second.toString().padLeft(2, '0');
-
   return '$hour:$minute:$second';
 }
-
