@@ -19,6 +19,14 @@ const Map<String, int> kSoilThresholds = {
 
 enum AppLanguage { en, hi, bn }
 
+String applyTemplate(String template, Map<String, String> values) {
+  var output = template;
+  values.forEach((token, value) {
+    output = output.replaceAll('{$token}', value);
+  });
+  return output;
+}
+
 class CropProfile {
   const CropProfile({
     required this.name,
@@ -366,6 +374,64 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
           'speakNow': 'अब बोलें...',
           'locationHint': 'गाँव/क्षेत्र का नाम लिखें या बोलें',
           'predictRain': 'बारिश अनुमान देखें',
+          'home': 'होम',
+          'soilLabel': 'मिट्टी',
+          'cropLabel': 'फसल',
+          'moistureLabel': 'नमी',
+          'waterNeed': 'पानी की आवश्यकता',
+          'threshold': 'सीमा',
+          'updated': 'अपडेट',
+          'refreshMoistureData': 'नमी डेटा रिफ्रेश करें',
+          'motorOn': 'मोटर चालू',
+          'motorOff': 'मोटर बंद',
+          'autoMotorControl': 'ऑटो मोटर नियंत्रण',
+          'autoMotorControlSubtitle': 'नमी के आधार पर मोटर को स्वचालित रूप से नियंत्रित करें।',
+          'settingsIntro':
+              'सास्वत एग्रो खाद्य, फल, बागान, सब्जी और अन्य फसलों का समर्थन करता है।\nESP डिवाइस कनेक्शन अपडेट करने के लिए ऐप सेटअप का उपयोग करें।',
+          'selectSoil': 'मिट्टी चुनें',
+          'chooseSoilType': 'मिट्टी का प्रकार चुनें',
+          'selectCrop': 'फसल चुनें',
+          'chooseCrop': 'फसल चुनें',
+          'thresholdPreview': 'सीमा पूर्वावलोकन',
+          'cropsCount': 'फसलें',
+          'sendToEsp': 'ESP8266 पर भेजें',
+          'askSimpleLanguage': 'सरल भाषा में पूछें...',
+          'voiceInput': 'वॉइस इनपुट',
+          'thinking': 'सोच रहा है...',
+          'voiceLocation': 'वॉइस लोकेशन',
+          'appSetup': 'ऐप सेटअप',
+          'espBaseUrl': 'ESP8266 बेस URL',
+          'language': 'भाषा',
+          'enableVoiceOutput': 'वॉइस आउटपुट सक्षम करें',
+          'saveSettings': 'सेटिंग्स सहेजें',
+          'espNotConnected': 'ESP8266 कनेक्ट नहीं है। WiFi, IP और पावर जांचें।',
+          'couldNotConnectEsp': 'ESP8266 से कनेक्ट नहीं हो सका।',
+          'unableControlMotor': 'मोटर नियंत्रित नहीं हो सकी।',
+          'settingsSent': 'सेटिंग्स ESP8266 को भेज दी गईं।',
+          'failedSendSettings': 'सेटिंग्स भेजना विफल रहा।',
+          'voiceInputUnavailable': 'वॉइस इनपुट उपलब्ध नहीं है।',
+          'addApiKeyFirst': 'पहले सेटअप से अपना OpenAI API Key जोड़ें।',
+          'couldNotProcess': 'मैं इसे प्रोसेस नहीं कर सका।',
+          'requestFailedApi': 'अनुरोध विफल। API key और नेटवर्क जांचें।',
+          'rainOutlookLow': 'कम बारिश की संभावना। सिंचाई की योजना बनाएं।',
+          'rainOutlookModerate': 'मध्यम बारिश की संभावना।',
+          'rainOutlookHigh': 'अधिक बारिश की संभावना। सिंचाई कम करें।',
+          'rainPredictionOutput':
+              '{location}: अगले 7 दिनों के लिए डेमो अनुमान: ~{rainMm} मिमी बारिश। {outlook}',
+          'notSynced': 'सिंक नहीं हुआ',
+          'irrigationDecision': 'सिंचाई निर्णय',
+          'fieldDryAdvice': 'खेत सूखा लग रहा है। सिंचाई शुरू करें और नमी में कमी देखें।',
+          'fieldWetAdvice': 'खेत में अभी पर्याप्त नमी है। अतिरिक्त सिंचाई से बचें।',
+          'soilGuidanceTitle': '{soil} मिट्टी मार्गदर्शन',
+          'sandyAdvice':
+              'रेतीली मिट्टी से पानी जल्दी निकलता है। कम मात्रा में बार-बार सिंचाई और मल्चिंग करें।',
+          'loamyAdvice':
+              'दोमट मिट्टी संतुलित होती है। अंतराल पर गहरी सिंचाई आमतौर पर बेहतर रहती है।',
+          'clayAdvice':
+              'चिकनी मिट्टी पानी लंबे समय तक रोकती है। धीरे सिंचाई करें और पानी जमा न होने दें।',
+          'sensorInsight': 'सेंसर जानकारी',
+          'moistureUnavailable': 'लाइव नमी डेटा उपलब्ध नहीं है। ESP8266 कनेक्ट होने पर रिफ्रेश करें।',
+          'moistureSummary': 'नमी {moisture} है और सीमा {threshold} है।',
         };
       case AppLanguage.bn:
         return {
@@ -381,6 +447,65 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
           'speakNow': 'এখন বলুন...',
           'locationHint': 'এলাকার নাম লিখুন বা বলুন',
           'predictRain': 'বৃষ্টি পূর্বাভাস দেখুন',
+          'home': 'হোম',
+          'soilLabel': 'মাটি',
+          'cropLabel': 'ফসল',
+          'moistureLabel': 'আর্দ্রতা',
+          'waterNeed': 'জলের প্রয়োজন',
+          'threshold': 'থ্রেশহোল্ড',
+          'updated': 'আপডেট',
+          'refreshMoistureData': 'আর্দ্রতার ডেটা রিফ্রেশ করুন',
+          'motorOn': 'মোটর চালু',
+          'motorOff': 'মোটর বন্ধ',
+          'autoMotorControl': 'অটো মোটর নিয়ন্ত্রণ',
+          'autoMotorControlSubtitle': 'আর্দ্রতার ভিত্তিতে মোটর স্বয়ংক্রিয়ভাবে নিয়ন্ত্রণ করুন।',
+          'settingsIntro':
+              'সাসওয়াত অ্যাগ্রো খাদ্য, ফল, বাগান, সবজি এবং আরও অনেক ফসল সমর্থন করে।\nESP ডিভাইস সংযোগ আপডেট করতে অ্যাপ সেটআপ ব্যবহার করুন।',
+          'selectSoil': 'মাটি নির্বাচন করুন',
+          'chooseSoilType': 'মাটির ধরন নির্বাচন করুন',
+          'selectCrop': 'ফসল নির্বাচন করুন',
+          'chooseCrop': 'ফসল নির্বাচন করুন',
+          'thresholdPreview': 'থ্রেশহোল্ড প্রিভিউ',
+          'cropsCount': 'ফসল',
+          'sendToEsp': 'ESP8266-এ পাঠান',
+          'askSimpleLanguage': 'সহজ ভাষায় জিজ্ঞাসা করুন...',
+          'voiceInput': 'ভয়েস ইনপুট',
+          'thinking': 'ভাবছে...',
+          'voiceLocation': 'ভয়েস লোকেশন',
+          'appSetup': 'অ্যাপ সেটআপ',
+          'espBaseUrl': 'ESP8266 বেস URL',
+          'language': 'ভাষা',
+          'enableVoiceOutput': 'ভয়েস আউটপুট চালু করুন',
+          'saveSettings': 'সেটিংস সংরক্ষণ করুন',
+          'espNotConnected': 'ESP8266 সংযুক্ত নয়। WiFi, IP এবং পাওয়ার পরীক্ষা করুন।',
+          'couldNotConnectEsp': 'ESP8266-এ সংযোগ করা যায়নি।',
+          'unableControlMotor': 'মোটর নিয়ন্ত্রণ করা যায়নি।',
+          'settingsSent': 'সেটিংস ESP8266-এ পাঠানো হয়েছে।',
+          'failedSendSettings': 'সেটিংস পাঠাতে ব্যর্থ হয়েছে।',
+          'voiceInputUnavailable': 'ভয়েস ইনপুট উপলব্ধ নয়।',
+          'addApiKeyFirst': 'প্রথমে সেটআপ থেকে OpenAI API Key যোগ করুন।',
+          'couldNotProcess': 'আমি এটি প্রক্রিয়া করতে পারিনি।',
+          'requestFailedApi': 'অনুরোধ ব্যর্থ। API key এবং নেটওয়ার্ক পরীক্ষা করুন।',
+          'rainOutlookLow': 'কম বৃষ্টির সম্ভাবনা। সেচ পরিকল্পনা করুন।',
+          'rainOutlookModerate': 'মাঝারি বৃষ্টির সম্ভাবনা।',
+          'rainOutlookHigh': 'বেশি বৃষ্টির সম্ভাবনা। সেচ কমান।',
+          'rainPredictionOutput':
+              '{location}: আগামী ৭ দিনের ডেমো পূর্বাভাস: ~{rainMm} মিমি বৃষ্টি। {outlook}',
+          'notSynced': 'সিঙ্ক হয়নি',
+          'irrigationDecision': 'সেচ সিদ্ধান্ত',
+          'fieldDryAdvice': 'ক্ষেত শুকনো মনে হচ্ছে। সেচ শুরু করুন এবং আর্দ্রতা কমা পর্যবেক্ষণ করুন।',
+          'fieldWetAdvice': 'ক্ষেতে এখন পর্যাপ্ত আর্দ্রতা আছে। অতিরিক্ত সেচ এড়িয়ে চলুন।',
+          'soilGuidanceTitle': '{soil} মাটির নির্দেশনা',
+          'sandyAdvice':
+              'বেলে মাটি দ্রুত পানি ছাড়ে। অল্প পরিমাণে ঘন ঘন সেচ এবং মালচিং ব্যবহার করুন।',
+          'loamyAdvice':
+              'দোআঁশ মাটি ভারসাম্যপূর্ণ। নির্দিষ্ট বিরতিতে গভীর সেচ সাধারণত ভালো কাজ করে।',
+          'clayAdvice':
+              'এঁটেল মাটি বেশি সময় পানি ধরে রাখে। ধীরে সেচ দিন এবং জলাবদ্ধতা এড়িয়ে চলুন।',
+          'sensorInsight': 'সেন্সর তথ্য',
+          'moistureUnavailable':
+              'লাইভ আর্দ্রতার ডেটা নেই। ESP8266 সংযুক্ত হলে রিফ্রেশ করুন।',
+          'moistureSummary': 'আর্দ্রতা {moisture} এবং থ্রেশহোল্ড {threshold}।',
         };
       case AppLanguage.en:
         return {
@@ -396,11 +521,73 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
           'speakNow': 'Speak now...',
           'locationHint': 'Type or speak village/area location',
           'predictRain': 'Get rainfall prediction',
+          'home': 'Home',
+          'soilLabel': 'Soil',
+          'cropLabel': 'Crop',
+          'moistureLabel': 'Moisture',
+          'waterNeed': 'Water need',
+          'threshold': 'Threshold',
+          'updated': 'Updated',
+          'refreshMoistureData': 'Refresh moisture data',
+          'motorOn': 'Motor ON',
+          'motorOff': 'Motor OFF',
+          'autoMotorControl': 'Auto motor control',
+          'autoMotorControlSubtitle': 'Automatically control motor from moisture.',
+          'settingsIntro':
+              'Saswat Agro supports food crops, fruit crops, plantation crops, vegetable crops and more.\nUse app setup to update ESP device connection.',
+          'selectSoil': 'Select Soil',
+          'chooseSoilType': 'Choose soil type',
+          'selectCrop': 'Select Crop',
+          'chooseCrop': 'Choose crop',
+          'thresholdPreview': 'Threshold preview',
+          'cropsCount': 'crops',
+          'sendToEsp': 'Send to ESP8266',
+          'askSimpleLanguage': 'Ask in simple language...',
+          'voiceInput': 'Voice input',
+          'thinking': 'Thinking...',
+          'voiceLocation': 'Voice location',
+          'appSetup': 'App Setup',
+          'espBaseUrl': 'ESP8266 Base URL',
+          'language': 'Language',
+          'enableVoiceOutput': 'Enable voice output',
+          'saveSettings': 'Save settings',
+          'espNotConnected': 'ESP8266 not connected. Check WiFi, IP, and power.',
+          'couldNotConnectEsp': 'Could not connect to ESP8266.',
+          'unableControlMotor': 'Unable to control motor.',
+          'settingsSent': 'Settings sent to ESP8266.',
+          'failedSendSettings': 'Failed to send settings.',
+          'voiceInputUnavailable': 'Voice input not available.',
+          'addApiKeyFirst': 'Add your OpenAI API key from setup first.',
+          'couldNotProcess': 'I could not process that.',
+          'requestFailedApi': 'Request failed. Verify API key and network.',
+          'rainOutlookLow': 'Low rainfall expected. Plan irrigation.',
+          'rainOutlookModerate': 'Moderate rainfall expected.',
+          'rainOutlookHigh': 'High rainfall expected. Reduce irrigation.',
+          'rainPredictionOutput':
+              '{location}: Demo prediction for next 7 days: ~{rainMm} mm rain. {outlook}',
+          'notSynced': 'Not synced',
+          'irrigationDecision': 'Irrigation Decision',
+          'fieldDryAdvice': 'Field appears dry. Start irrigation and monitor moisture reduction.',
+          'fieldWetAdvice': 'Field has enough moisture now. Avoid extra watering.',
+          'soilGuidanceTitle': '{soil} Soil Guidance',
+          'sandyAdvice':
+              'Sandy soil drains quickly. Use short and frequent irrigation cycles and mulching.',
+          'loamyAdvice':
+              'Loamy soil is balanced. Deep watering at intervals usually works best.',
+          'clayAdvice':
+              'Clay stores water longer. Irrigate slowly and avoid standing water.',
+          'sensorInsight': 'Sensor Insight',
+          'moistureUnavailable': 'Live moisture data unavailable. Refresh when ESP8266 is connected.',
+          'moistureSummary': 'Moisture is {moisture} and threshold is {threshold}.',
         };
     }
   }
 
   String tr(String key) => _t(_language)[key] ?? key;
+
+  String trf(String key, Map<String, String> values) {
+    return applyTemplate(tr(key), values);
+  }
 
   Uri _buildEspUri(String path, {Map<String, String>? queryParameters}) {
     final baseUri = Uri.parse(_espBaseUrl.trim());
@@ -437,10 +624,10 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _espError = 'ESP8266 not connected. Check WiFi, IP, and power.';
+        _espError = tr('espNotConnected');
       });
       if (showLoader) {
-        _showSnackBar('Could not connect to ESP8266.', background: Colors.red);
+        _showSnackBar(tr('couldNotConnectEsp'), background: Colors.red);
       }
     } finally {
       if (!mounted) return;
@@ -490,11 +677,11 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
         _motorOn = turnOn;
         _espError = null;
       });
-      if (!silent) _showSnackBar(turnOn ? 'Motor ON' : 'Motor OFF');
+      if (!silent) _showSnackBar(turnOn ? tr('motorOn') : tr('motorOff'));
     } catch (_) {
       if (!mounted) return;
-      setState(() => _espError = 'Unable to control motor.');
-      if (!silent) _showSnackBar('Unable to control motor.', background: Colors.red);
+      setState(() => _espError = tr('unableControlMotor'));
+      if (!silent) _showSnackBar(tr('unableControlMotor'), background: Colors.red);
     } finally {
       if (!mounted) return;
       setState(() => _isMotorBusy = false);
@@ -516,12 +703,12 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
       if (!mounted) return;
       setState(() => _espError = null);
-      _showSnackBar('Settings sent to ESP8266.');
+      _showSnackBar(tr('settingsSent'));
       await _refreshMoistureData();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _espError = 'Failed to send settings.');
-      _showSnackBar('Failed to send settings.', background: Colors.red);
+      setState(() => _espError = tr('failedSendSettings'));
+      _showSnackBar(tr('failedSendSettings'), background: Colors.red);
     } finally {
       if (!mounted) return;
       setState(() => _isSendingSettings = false);
@@ -539,7 +726,7 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
   }) async {
     final available = await _speechToText.initialize();
     if (!available) {
-      _showSnackBar('Voice input not available.', background: Colors.red);
+      _showSnackBar(tr('voiceInputUnavailable'), background: Colors.red);
       return;
     }
     setState(() => _isListening = true);
@@ -567,7 +754,7 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
     try {
       final key = _openAiApiKey.trim();
       if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY') {
-        throw Exception('Add your OpenAI API key from setup first.');
+        throw Exception(tr('addApiKeyFirst'));
       }
 
       final crop = _selectedCropProfile;
@@ -634,7 +821,7 @@ Respond in short and simple language suitable for farmers.
       final cleanError = error.toString().replaceFirst('Exception: ', '');
       setState(() {
         _messages.add(ChatMessage(
-          text: 'I could not process that. $cleanError',
+          text: '${tr('couldNotProcess')} $cleanError',
           isUser: false,
           isError: true,
         ));
@@ -653,7 +840,7 @@ Respond in short and simple language suitable for farmers.
         if (message is String && message.isNotEmpty) return message;
       }
     } catch (_) {}
-    return 'Request failed. Verify API key and network.';
+    return tr('requestFailedApi');
   }
 
   String _extractAssistantText(dynamic data) {
@@ -692,13 +879,16 @@ Respond in short and simple language suitable for farmers.
     final score = trimmed.toLowerCase().codeUnits.fold<int>(0, (sum, c) => sum + c);
     final rainMm = 20 + (score % 90);
     final outlook = rainMm < 35
-        ? 'Low rainfall expected. Plan irrigation.'
+        ? tr('rainOutlookLow')
         : rainMm < 65
-            ? 'Moderate rainfall expected.'
-            : 'High rainfall expected. Reduce irrigation.';
+            ? tr('rainOutlookModerate')
+            : tr('rainOutlookHigh');
 
-    final output =
-        '$trimmed: Demo prediction for next 7 days: ~$rainMm mm rain. $outlook';
+    final output = trf('rainPredictionOutput', {
+      'location': trimmed,
+      'rainMm': rainMm.toString(),
+      'outlook': outlook,
+    });
     if (!mounted) return;
     setState(() {
       _rainfallPrediction = output;
@@ -727,7 +917,9 @@ Respond in short and simple language suitable for farmers.
         return ConnectionSheet(
           initialEspBaseUrl: _espBaseUrl,
           initialOpenAiApiKey: _openAiApiKey == kOpenAiApiKey ? '' : _openAiApiKey,
+          initialLanguage: _language,
           voiceEnabled: _voiceEnabled,
+          tr: tr,
           onSave: (espBaseUrl, openAiApiKey, language, voiceEnabled) {
             setState(() {
               _espBaseUrl = espBaseUrl.trim();
@@ -846,7 +1038,7 @@ Respond in short and simple language suitable for farmers.
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh moisture data',
+            tooltip: tr('refreshMoistureData'),
             onPressed: _isRefreshing ? null : () => _refreshMoistureData(showLoader: true),
             icon: _isRefreshing
                 ? const SizedBox(
@@ -877,7 +1069,7 @@ Respond in short and simple language suitable for farmers.
         selectedIndex: _currentIndex,
         onDestinationSelected: (value) => setState(() => _currentIndex = value),
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+          NavigationDestination(icon: const Icon(Icons.home_outlined), label: tr('home')),
           NavigationDestination(icon: const Icon(Icons.tune), label: tr('settings')),
           NavigationDestination(icon: const Icon(Icons.eco), label: tr('advisory')),
           NavigationDestination(icon: const Icon(Icons.mic), label: tr('chatbot')),
@@ -958,15 +1150,15 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Soil: $selectedSoil | Crop: $selectedCrop',
+                  '${tr('soilLabel')}: $selectedSoil | ${tr('cropLabel')}: $selectedCrop',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  'Water need: ${selectedCropProfile.waterMinMmPerWeek}-${selectedCropProfile.waterMaxMmPerWeek} mm/week',
+                  '${tr('waterNeed')}: ${selectedCropProfile.waterMinMmPerWeek}-${selectedCropProfile.waterMaxMmPerWeek} mm/week',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  'Threshold: $threshold | Updated: ${formatTime(lastUpdated)}',
+                  '${tr('threshold')}: $threshold | ${tr('updated')}: ${formatTime(lastUpdated, tr('notSynced'))}',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
@@ -974,16 +1166,16 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     FilledButton(
                       onPressed: isMotorBusy ? null : () => onMotorToggle(true),
-                      child: const Text('Motor ON'),
+                      child: Text(tr('motorOn')),
                     ),
                     const SizedBox(width: 8),
                     OutlinedButton(
                       onPressed: isMotorBusy ? null : () => onMotorToggle(false),
-                      child: const Text('Motor OFF'),
+                      child: Text(tr('motorOff')),
                     ),
                     const Spacer(),
                     IconButton(
-                      tooltip: 'Refresh moisture data',
+                      tooltip: tr('refreshMoistureData'),
                       onPressed: isRefreshing ? null : onRefresh,
                       icon: const Icon(Icons.refresh, color: Colors.white),
                     ),
@@ -1004,8 +1196,8 @@ class DashboardScreen extends StatelessWidget {
             child: SwitchListTile.adaptive(
               value: autoControlEnabled,
               onChanged: onAutoControlChanged,
-              title: const Text('Auto motor control'),
-              subtitle: const Text('Automatically control motor from moisture.'),
+              title: Text(tr('autoMotorControl')),
+              subtitle: Text(tr('autoMotorControlSubtitle')),
             ),
           ),
         ],
@@ -1071,7 +1263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _AppCard(
             child: Text(
-              'Saswat Agro supports food crops, fruit crops, plantation crops, vegetable crops and more.\nUse app setup to update ESP device connection.',
+              widget.tr('settingsIntro'),
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -1080,23 +1272,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Select Soil', style: TextStyle(fontWeight: FontWeight.w800)),
+                Text(widget.tr('selectSoil'), style: const TextStyle(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _soil,
-                  decoration: _buildDropdownDecoration('Choose soil type'),
+                  decoration: _buildDropdownDecoration(widget.tr('chooseSoilType')),
                   items: kSoilThresholds.keys
                       .map((soil) => DropdownMenuItem(value: soil, child: Text(soil)))
                       .toList(),
                   onChanged: (value) => setState(() => _soil = value ?? _soil),
                 ),
                 const SizedBox(height: 16),
-                const Text('Select Crop', style: TextStyle(fontWeight: FontWeight.w800)),
+                Text(widget.tr('selectCrop'), style: const TextStyle(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _crop,
                   isExpanded: true,
-                  decoration: _buildDropdownDecoration('Choose crop'),
+                  decoration: _buildDropdownDecoration(widget.tr('chooseCrop')),
                   items: kCropProfiles
                       .map((crop) => DropdownMenuItem(
                             value: crop.name,
@@ -1106,13 +1298,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (value) => setState(() => _crop = value ?? _crop),
                 ),
                 const SizedBox(height: 16),
-                Text('Threshold preview: $previewThreshold'),
+                Text('${widget.tr('thresholdPreview')}: $previewThreshold'),
                 const SizedBox(height: 6),
                 ...groups.entries.map(
                   (entry) => Padding(
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Text(
-                      '${entry.key}: ${entry.value.length} crops',
+                      '${entry.key}: ${entry.value.length} ${widget.tr('cropsCount')}',
                       style: TextStyle(color: Colors.black.withOpacity(0.65)),
                     ),
                   ),
@@ -1129,7 +1321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.send),
-                    label: const Text('Send to ESP8266'),
+                    label: Text(widget.tr('sendToEsp')),
                   ),
                 ),
               ],
@@ -1176,8 +1368,22 @@ class AdvisoryScreen extends StatelessWidget {
       soil: selectedSoil,
       crop: crop,
       moisture: moisture,
-      threshold: threshold,
       isDry: isDry,
+      irrigationDecisionTitle: tr('irrigationDecision'),
+      fieldDryAdvice: tr('fieldDryAdvice'),
+      fieldWetAdvice: tr('fieldWetAdvice'),
+      soilGuidanceTitle: applyTemplate(tr('soilGuidanceTitle'), {'soil': selectedSoil}),
+      soilAdvice: {
+        'Sandy': tr('sandyAdvice'),
+        'Loamy': tr('loamyAdvice'),
+        'Clay': tr('clayAdvice'),
+      },
+      moistureUnavailable: tr('moistureUnavailable'),
+      moistureSummary: applyTemplate(
+        tr('moistureSummary'),
+        {'moisture': (moisture ?? 0).toString(), 'threshold': threshold.toString()},
+      ),
+      sensorInsightTitle: tr('sensorInsight'),
     );
 
     return SingleChildScrollView(
@@ -1290,9 +1496,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _tag('Soil: ${widget.selectedSoil}'),
-                _tag('Crop: ${widget.selectedCrop}'),
-                _tag('Moisture: ${widget.moisture?.toString() ?? widget.tr('noData')}'),
+                _tag('${widget.tr('soilLabel')}: ${widget.selectedSoil}'),
+                _tag('${widget.tr('cropLabel')}: ${widget.selectedCrop}'),
+                _tag(
+                    '${widget.tr('moistureLabel')}: ${widget.moisture?.toString() ?? widget.tr('noData')}'),
                 if (widget.isListening) _tag(widget.tr('speakNow')),
               ],
             ),
@@ -1306,7 +1513,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   if (index >= widget.messages.length) {
-                    return const ChatBubble(text: 'Thinking...', isUser: false, isLoading: true);
+                    return ChatBubble(
+                        text: widget.tr('thinking'), isUser: false, isLoading: true);
                   }
                   final message = widget.messages[index];
                   return ChatBubble(
@@ -1328,8 +1536,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     minLines: 1,
                     maxLines: 4,
                     onSubmitted: (_) => _handleSend(),
-                    decoration: const InputDecoration(
-                      hintText: 'Ask in simple language...',
+                    decoration: InputDecoration(
+                      hintText: widget.tr('askSimpleLanguage'),
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -1341,7 +1549,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 ),
                 const SizedBox(width: 6),
                 IconButton(
-                  tooltip: 'Voice input',
+                    tooltip: widget.tr('voiceInput'),
                   onPressed: widget.isLoading ? null : widget.onVoicePressed,
                   icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
                 ),
@@ -1452,7 +1660,7 @@ class _RainfallScreenState extends State<RainfallScreen> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: 'Voice location',
+                      tooltip: widget.tr('voiceLocation'),
                       onPressed: widget.isLoading ? null : widget.onVoiceLocation,
                       icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
                     ),
@@ -1485,13 +1693,17 @@ class ConnectionSheet extends StatefulWidget {
     super.key,
     required this.initialEspBaseUrl,
     required this.initialOpenAiApiKey,
+    required this.initialLanguage,
     required this.voiceEnabled,
+    required this.tr,
     required this.onSave,
   });
 
   final String initialEspBaseUrl;
   final String initialOpenAiApiKey;
+  final AppLanguage initialLanguage;
   final bool voiceEnabled;
+  final String Function(String) tr;
   final void Function(
     String espBaseUrl,
     String openAiApiKey,
@@ -1514,6 +1726,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
     super.initState();
     _espController = TextEditingController(text: widget.initialEspBaseUrl);
     _apiKeyController = TextEditingController(text: widget.initialOpenAiApiKey);
+    _language = widget.initialLanguage;
     _voiceEnabled = widget.voiceEnabled;
   }
 
@@ -1532,12 +1745,13 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('App Setup', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+          Text(widget.tr('appSetup'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
           const SizedBox(height: 10),
           TextField(
             controller: _espController,
-            decoration: const InputDecoration(
-              labelText: 'ESP8266 Base URL',
+            decoration: InputDecoration(
+              labelText: widget.tr('espBaseUrl'),
               hintText: 'http://192.168.4.1',
               border: OutlineInputBorder(),
             ),
@@ -1555,7 +1769,8 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
           const SizedBox(height: 10),
           DropdownButtonFormField<AppLanguage>(
             value: _language,
-            decoration: const InputDecoration(labelText: 'Language', border: OutlineInputBorder()),
+            decoration: InputDecoration(
+                labelText: widget.tr('language'), border: const OutlineInputBorder()),
             items: const [
               DropdownMenuItem(value: AppLanguage.en, child: Text('English')),
               DropdownMenuItem(value: AppLanguage.hi, child: Text('Hindi')),
@@ -1566,7 +1781,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
           SwitchListTile.adaptive(
             value: _voiceEnabled,
             onChanged: (v) => setState(() => _voiceEnabled = v),
-            title: const Text('Enable voice output'),
+            title: Text(widget.tr('enableVoiceOutput')),
           ),
           const SizedBox(height: 8),
           SizedBox(
@@ -1579,7 +1794,7 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                 _voiceEnabled,
               ),
               icon: const Icon(Icons.save),
-              label: const Text('Save settings'),
+              label: Text(widget.tr('saveSettings')),
             ),
           ),
         ],
@@ -1701,31 +1916,29 @@ List<AdviceItem> buildAdvisoryItems({
   required String soil,
   required CropProfile crop,
   required int? moisture,
-  required int threshold,
   required bool isDry,
+  required String irrigationDecisionTitle,
+  required String fieldDryAdvice,
+  required String fieldWetAdvice,
+  required String soilGuidanceTitle,
+  required Map<String, String> soilAdvice,
+  required String moistureUnavailable,
+  required String moistureSummary,
+  required String sensorInsightTitle,
 }) {
-  final soilAdvice = {
-    'Sandy':
-        'Sandy soil drains quickly. Use short and frequent irrigation cycles and mulching.',
-    'Loamy': 'Loamy soil is balanced. Deep watering at intervals usually works best.',
-    'Clay': 'Clay stores water longer. Irrigate slowly and avoid standing water.',
-  };
-
-  final moistureSummary = moisture == null
-      ? 'Live moisture data unavailable. Refresh when ESP8266 is connected.'
-      : 'Moisture is $moisture and threshold is $threshold.';
+  final localizedMoistureSummary = moisture == null ? moistureUnavailable : moistureSummary;
 
   return [
     AdviceItem(
-      title: 'Irrigation Decision',
+      title: irrigationDecisionTitle,
       description: isDry
-          ? 'Field appears dry. Start irrigation and monitor moisture reduction.'
-          : 'Field has enough moisture now. Avoid extra watering.',
+          ? fieldDryAdvice
+          : fieldWetAdvice,
       icon: Icons.water_drop,
       color: isDry ? const Color(0xFFD97706) : const Color(0xFF2563EB),
     ),
     AdviceItem(
-      title: '$soil Soil Guidance',
+      title: soilGuidanceTitle,
       description: soilAdvice[soil] ?? soilAdvice['Loamy']!,
       icon: Icons.landscape,
       color: const Color(0xFF14B8A6),
@@ -1738,8 +1951,8 @@ List<AdviceItem> buildAdvisoryItems({
       color: const Color(0xFF22C55E),
     ),
     AdviceItem(
-      title: 'Sensor Insight',
-      description: moistureSummary,
+      title: sensorInsightTitle,
+      description: localizedMoistureSummary,
       icon: Icons.analytics,
       color: const Color(0xFF1D6FD8),
     ),
@@ -1754,8 +1967,8 @@ Map<String, List<CropProfile>> groupByCategory(List<CropProfile> crops) {
   return grouped;
 }
 
-String formatTime(DateTime? dateTime) {
-  if (dateTime == null) return 'Not synced';
+String formatTime(DateTime? dateTime, String notSyncedLabel) {
+  if (dateTime == null) return notSyncedLabel;
   final hour = dateTime.hour.toString().padLeft(2, '0');
   final minute = dateTime.minute.toString().padLeft(2, '0');
   final second = dateTime.second.toString().padLeft(2, '0');
