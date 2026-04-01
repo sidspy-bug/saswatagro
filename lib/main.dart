@@ -8,6 +8,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 const String kDefaultEspBaseUrl = 'http://192.168.4.1';
 const String kOpenAiApiKey = 'PASTE_YOUR_OPENAI_API_KEY';
+const Duration kSensorRefreshInterval = Duration(seconds: 7);
+const double kDefaultSpeechRate = 0.45;
 
 const Map<String, int> kSoilThresholds = {
   'Sandy': 500,
@@ -330,13 +332,13 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
     super.initState();
     _initVoice();
     _refreshMoistureData(showLoader: true);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 7), (_) {
+    _refreshTimer = Timer.periodic(kSensorRefreshInterval, (_) {
       _refreshMoistureData();
     });
   }
 
   Future<void> _initVoice() async {
-    await _flutterTts.setSpeechRate(0.45);
+    await _flutterTts.setSpeechRate(kDefaultSpeechRate);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
   }
@@ -626,7 +628,7 @@ Respond in short and simple language suitable for farmers.
       setState(() {
         _messages.add(ChatMessage(text: answer, isUser: false));
       });
-      unawaited(_speak(answer));
+      await _speak(answer);
     } catch (error) {
       if (!mounted) return;
       final cleanError = error.toString().replaceFirst('Exception: ', '');
@@ -685,7 +687,8 @@ Respond in short and simple language suitable for farmers.
       _isRainLoading = true;
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    // Demo-only heuristic prediction based on location text.
+    // Replace with a real weather API in production.
     final score = trimmed.toLowerCase().codeUnits.fold<int>(0, (sum, c) => sum + c);
     final rainMm = 20 + (score % 90);
     final outlook = rainMm < 35
@@ -694,13 +697,14 @@ Respond in short and simple language suitable for farmers.
             ? 'Moderate rainfall expected.'
             : 'High rainfall expected. Reduce irrigation.';
 
-    final output = '$trimmed: Next 7 days ~ $rainMm mm rain. $outlook';
+    final output =
+        '$trimmed: Demo prediction for next 7 days: ~$rainMm mm rain. $outlook';
     if (!mounted) return;
     setState(() {
       _rainfallPrediction = output;
       _isRainLoading = false;
     });
-    unawaited(_speak(output));
+    await _speak(output);
   }
 
   void _showSnackBar(String message, {Color background = const Color(0xFF0F5132)}) {
@@ -842,6 +846,7 @@ Respond in short and simple language suitable for farmers.
         ),
         actions: [
           IconButton(
+            tooltip: 'Refresh moisture data',
             onPressed: _isRefreshing ? null : () => _refreshMoistureData(showLoader: true),
             icon: _isRefreshing
                 ? const SizedBox(
@@ -977,7 +982,11 @@ class DashboardScreen extends StatelessWidget {
                       child: const Text('Motor OFF'),
                     ),
                     const Spacer(),
-                    IconButton(onPressed: isRefreshing ? null : onRefresh, icon: const Icon(Icons.refresh, color: Colors.white)),
+                    IconButton(
+                      tooltip: 'Refresh moisture data',
+                      onPressed: isRefreshing ? null : onRefresh,
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                    ),
                   ],
                 ),
               ],
@@ -1062,7 +1071,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _AppCard(
             child: Text(
-              'Saswat Agro supports food crops, fruit crops, plantation crops, vegetable crops and more.\nDevice: ${widget.espBaseUrl}',
+              'Saswat Agro supports food crops, fruit crops, plantation crops, vegetable crops and more.\nUse app setup to update ESP device connection.',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -1075,7 +1084,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _soil,
-                  decoration: _dd('Choose soil type'),
+                  decoration: _buildDropdownDecoration('Choose soil type'),
                   items: kSoilThresholds.keys
                       .map((soil) => DropdownMenuItem(value: soil, child: Text(soil)))
                       .toList(),
@@ -1087,7 +1096,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 DropdownButtonFormField<String>(
                   value: _crop,
                   isExpanded: true,
-                  decoration: _dd('Choose crop'),
+                  decoration: _buildDropdownDecoration('Choose crop'),
                   items: kCropProfiles
                       .map((crop) => DropdownMenuItem(
                             value: crop.name,
@@ -1099,9 +1108,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 Text('Threshold preview: $previewThreshold'),
                 const SizedBox(height: 6),
-                Text(
-                  'Category groups: ${groups.entries.map((e) => '${e.key}: ${e.value.length}').join(' | ')}',
-                  style: TextStyle(color: Colors.black.withOpacity(0.65)),
+                ...groups.entries.map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      '${entry.key}: ${entry.value.length} crops',
+                      style: TextStyle(color: Colors.black.withOpacity(0.65)),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -1126,7 +1140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  InputDecoration _dd(String hint) {
+  InputDecoration _buildDropdownDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
       filled: true,
