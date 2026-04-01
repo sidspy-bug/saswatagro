@@ -10,7 +10,10 @@ const String kDefaultEspBaseUrl = String.fromEnvironment(
   'ESP_BASE_URL',
   defaultValue: 'http://192.168.4.1',
 );
-const String kOpenAiApiKey = String.fromEnvironment('OPENAI_API_KEY');
+const String kOpenAiApiKey = String.fromEnvironment(
+  'OPENAI_API_KEY',
+  defaultValue: '',
+);
 const Duration kSensorRefreshInterval = Duration(seconds: 7);
 const double kDefaultSpeechRate = 0.45;
 

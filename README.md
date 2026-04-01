@@ -56,6 +56,6 @@ flutter build ios --release --no-codesign --dart-define=OPENAI_API_KEY=your_key_
 
 A GitHub Actions workflow is included at:
 
-`/home/runner/work/saswatagro/saswatagro/.github/workflows/flutter-multi-platform.yml`
+`.github/workflows/flutter-multi-platform.yml`
 
 Set repository secret `OPENAI_API_KEY` for CI builds.
