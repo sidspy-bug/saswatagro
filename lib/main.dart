@@ -6,8 +6,14 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-const String kDefaultEspBaseUrl = 'http://192.168.4.1';
-const String kOpenAiApiKey = 'PASTE_YOUR_OPENAI_API_KEY';
+const String kDefaultEspBaseUrl = String.fromEnvironment(
+  'ESP_BASE_URL',
+  defaultValue: 'http://192.168.4.1',
+);
+const String kOpenAiApiKey = String.fromEnvironment(
+  'OPENAI_API_KEY',
+  defaultValue: '',
+);
 const Duration kSensorRefreshInterval = Duration(seconds: 7);
 const double kDefaultSpeechRate = 0.45;
 
@@ -753,7 +759,7 @@ class _SmartIrrigationShellState extends State<SmartIrrigationShell> {
 
     try {
       final key = _openAiApiKey.trim();
-      if (key.isEmpty || key == 'PASTE_YOUR_OPENAI_API_KEY') {
+      if (key.isEmpty) {
         throw Exception(tr('addApiKeyFirst'));
       }
 
@@ -916,7 +922,7 @@ Respond in short and simple language suitable for farmers.
       builder: (sheetContext) {
         return ConnectionSheet(
           initialEspBaseUrl: _espBaseUrl,
-          initialOpenAiApiKey: _openAiApiKey == kOpenAiApiKey ? '' : _openAiApiKey,
+          initialOpenAiApiKey: _openAiApiKey,
           initialLanguage: _language,
           voiceEnabled: _voiceEnabled,
           tr: tr,
