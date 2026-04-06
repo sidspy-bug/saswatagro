@@ -257,23 +257,85 @@ void main() {
   runApp(const SaswatAgroApp());
 }
 
+// ─── Design constants ──────────────────────────────────────────────────────
+const Color kColorPrimary = Color(0xFF0D6E4A);
+const Color kColorPrimaryLight = Color(0xFF10B981);
+const Color kColorSecondary = Color(0xFF1D4ED8);
+const Color kColorBackground = Color(0xFFF0F7F4);
+const Color kColorSurface = Color(0xFFFFFFFF);
+const Color kColorError = Color(0xFFDC2626);
+const Color kColorWarning = Color(0xFFF59E0B);
+const Color kColorInfo = Color(0xFF0EA5E9);
+const LinearGradient kGradientPrimary = LinearGradient(
+  colors: [Color(0xFF064E3B), Color(0xFF059669)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const LinearGradient kGradientWater = LinearGradient(
+  colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+// ───────────────────────────────────────────────────────────────────────────
+
 class SaswatAgroApp extends StatelessWidget {
   const SaswatAgroApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final baseTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF128C62),
-      ),
-    );
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Saswat Agro',
-      theme: baseTheme.copyWith(
-        scaffoldBackgroundColor: const Color(0xFFF1F8F4),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: kColorPrimary,
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: kColorBackground,
+        cardTheme: CardTheme(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color: kColorSurface,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF1F5F9),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: kColorPrimary, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: kColorPrimary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: kColorSurface,
+          indicatorColor: kColorPrimary.withOpacity(0.15),
+          labelTextStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: kColorPrimary);
+            }
+            return const IconThemeData(color: Color(0xFF94A3B8));
+          }),
+        ),
       ),
       home: const SmartIrrigationShell(),
     );
@@ -1023,64 +1085,67 @@ Respond in short and simple language suitable for farmers.
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              tr('appTitle'),
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-            ),
-            Text(
-              pageTitles[_currentIndex],
-              style: TextStyle(
-                color: Colors.black.withOpacity(0.55),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+      backgroundColor: kColorBackground,
+      body: Column(
+        children: [
+          _AppHeader(
+            title: tr('appTitle'),
+            subtitle: pageTitles[_currentIndex],
+            isRefreshing: _isRefreshing,
+            onRefresh: () => _refreshMoistureData(showLoader: true),
+            onSettings: _openConnectionSheet,
+          ),
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: pages),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: kColorSurface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: tr('refreshMoistureData'),
-            onPressed: _isRefreshing ? null : () => _refreshMoistureData(showLoader: true),
-            icon: _isRefreshing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(onPressed: _openConnectionSheet, icon: const Icon(Icons.settings_rounded)),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFEAF7EF), Color(0xFFF4F8FF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
         child: SafeArea(
           top: false,
-          child: IndexedStack(index: _currentIndex, children: pages),
+          child: NavigationBar(
+            height: 64,
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (value) => setState(() => _currentIndex = value),
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.dashboard_outlined),
+                selectedIcon: const Icon(Icons.dashboard_rounded),
+                label: tr('home'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.tune_outlined),
+                selectedIcon: const Icon(Icons.tune_rounded),
+                label: tr('settings'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.eco_outlined),
+                selectedIcon: const Icon(Icons.eco_rounded),
+                label: tr('advisory'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                selectedIcon: const Icon(Icons.chat_bubble_rounded),
+                label: tr('chatbot'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.cloud_outlined),
+                selectedIcon: const Icon(Icons.cloud_rounded),
+                label: tr('rain'),
+              ),
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (value) => setState(() => _currentIndex = value),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.home_outlined), label: tr('home')),
-          NavigationDestination(icon: const Icon(Icons.tune), label: tr('settings')),
-          NavigationDestination(icon: const Icon(Icons.eco), label: tr('advisory')),
-          NavigationDestination(icon: const Icon(Icons.mic), label: tr('chatbot')),
-          NavigationDestination(icon: const Icon(Icons.cloud), label: tr('rain')),
-        ],
       ),
     );
   }
@@ -1126,84 +1191,307 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pct = moisture == null
+        ? null
+        : ((moisture! / (threshold * 1.5)).clamp(0.0, 1.0));
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
         children: [
-          _AppCard(
-            gradient: const LinearGradient(colors: [Color(0xFF109E6F), Color(0xFF297AE0)]),
+          // ─── Hero moisture card ─────────────────────────────────────────
+          _GradientCard(
+            gradient: isDry ? kGradientWater : kGradientPrimary,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.water_drop_rounded, color: Colors.white),
-                    const SizedBox(width: 10),
-                    Text(
-                      moisture?.toString() ?? tr('noData'),
-                      style: const TextStyle(
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        isDry ? Icons.water_drop_rounded : Icons.grass_rounded,
                         color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
+                        size: 28,
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      isDry ? tr('soilDry') : tr('soilWet'),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr('moistureLabel'),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            moisture?.toString() ?? tr('noData'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isDry ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isDry ? tr('soilDry') : tr('soilWet'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                // Moisture bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 8,
+                    backgroundColor: Colors.white.withOpacity(0.25),
+                    valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  ),
+                ),
                 const SizedBox(height: 10),
-                Text(
-                  '${tr('soilLabel')}: $selectedSoil | ${tr('cropLabel')}: $selectedCrop',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '${tr('waterNeed')}: ${selectedCropProfile.waterMinMmPerWeek}-${selectedCropProfile.waterMaxMmPerWeek} mm/week',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '${tr('threshold')}: $threshold | ${tr('updated')}: ${formatTime(lastUpdated, tr('notSynced'))}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
                 Row(
                   children: [
-                    FilledButton(
-                      onPressed: isMotorBusy ? null : () => onMotorToggle(true),
-                      child: Text(tr('motorOn')),
+                    _StatChip(
+                      label: tr('threshold'),
+                      value: threshold.toString(),
                     ),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: isMotorBusy ? null : () => onMotorToggle(false),
-                      child: Text(tr('motorOff')),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: tr('refreshMoistureData'),
-                      onPressed: isRefreshing ? null : onRefresh,
-                      icon: const Icon(Icons.refresh, color: Colors.white),
+                    _StatChip(
+                      label: tr('updated'),
+                      value: formatTime(lastUpdated, tr('notSynced')),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          if (errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: _AppCard(
-                child: Text(errorMessage!, style: const TextStyle(color: Color(0xFF991B1B))),
+
+          const SizedBox(height: 12),
+
+          // ─── Crop & soil info ───────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _InfoCard(
+                  icon: Icons.landscape_rounded,
+                  iconColor: const Color(0xFF92400E),
+                  iconBg: const Color(0xFFFEF3C7),
+                  label: tr('soilLabel'),
+                  value: selectedSoil,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _InfoCard(
+                  icon: Icons.grass_rounded,
+                  iconColor: const Color(0xFF166534),
+                  iconBg: const Color(0xFFDCFCE7),
+                  label: tr('cropLabel'),
+                  value: selectedCrop,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Row(
+            children: [
+              Expanded(
+                child: _InfoCard(
+                  icon: Icons.water_rounded,
+                  iconColor: const Color(0xFF1E40AF),
+                  iconBg: const Color(0xFFDBEAFE),
+                  label: tr('waterNeed'),
+                  value:
+                      '${selectedCropProfile.waterMinMmPerWeek}-${selectedCropProfile.waterMaxMmPerWeek} mm/w',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _InfoCard(
+                  icon: Icons.settings_remote_rounded,
+                  iconColor: motorOn ? const Color(0xFF166534) : const Color(0xFF6B7280),
+                  iconBg: motorOn ? const Color(0xFFDCFCE7) : const Color(0xFFF3F4F6),
+                  label: 'Motor',
+                  value: motorOn ? tr('motorOn') : tr('motorOff'),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // ─── Motor control card ─────────────────────────────────────────
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: kColorPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.settings_remote_rounded, color: kColorPrimary),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Motor Control',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: tr('refreshMoistureData'),
+                      onPressed: isRefreshing ? null : onRefresh,
+                      icon: isRefreshing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_rounded, color: kColorPrimary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButton(
+                        label: tr('motorOn'),
+                        icon: Icons.power_settings_new_rounded,
+                        color: kColorPrimary,
+                        active: motorOn,
+                        loading: isMotorBusy,
+                        onPressed: isMotorBusy ? null : () => onMotorToggle(true),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _ActionButton(
+                        label: tr('motorOff'),
+                        icon: Icons.power_off_rounded,
+                        color: kColorError,
+                        active: !motorOn,
+                        loading: isMotorBusy,
+                        onPressed: isMotorBusy ? null : () => onMotorToggle(false),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          if (errorMessage != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFCA5A5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: kColorError, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: kColorError, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
             ),
+          ],
+
           const SizedBox(height: 10),
-          _AppCard(
-            child: SwitchListTile.adaptive(
-              value: autoControlEnabled,
-              onChanged: onAutoControlChanged,
-              title: Text(tr('autoMotorControl')),
-              subtitle: Text(tr('autoMotorControlSubtitle')),
+
+          // ─── Auto control toggle ────────────────────────────────────────
+          _SurfaceCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: autoControlEnabled
+                        ? kColorPrimary.withOpacity(0.1)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.auto_mode_rounded,
+                    color: autoControlEnabled ? kColorPrimary : const Color(0xFF94A3B8),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('autoMotorControl'),
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tr('autoMotorControlSubtitle'),
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: autoControlEnabled,
+                  onChanged: onAutoControlChanged,
+                  activeColor: kColorPrimary,
+                ),
+              ],
             ),
           ),
         ],
@@ -1264,73 +1552,155 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final groups = groupByCategory(kCropProfiles);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AppCard(
-            child: Text(
-              widget.tr('settingsIntro'),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // ─── Intro banner ───────────────────────────────────────────────
+          _GradientCard(
+            gradient: kGradientPrimary,
+            child: Row(
               children: [
-                Text(widget.tr('selectSoil'), style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _soil,
-                  decoration: _buildDropdownDecoration(widget.tr('chooseSoilType')),
-                  items: kSoilThresholds.keys
-                      .map((soil) => DropdownMenuItem(value: soil, child: Text(soil)))
-                      .toList(),
-                  onChanged: (value) => setState(() => _soil = value ?? _soil),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.settings_rounded, color: Colors.white, size: 26),
                 ),
-                const SizedBox(height: 16),
-                Text(widget.tr('selectCrop'), style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _crop,
-                  isExpanded: true,
-                  decoration: _buildDropdownDecoration(widget.tr('chooseCrop')),
-                  items: kCropProfiles
-                      .map((crop) => DropdownMenuItem(
-                            value: crop.name,
-                            child: Text('${crop.name} (${crop.category})'),
-                          ))
-                      .toList(),
-                  onChanged: (value) => setState(() => _crop = value ?? _crop),
-                ),
-                const SizedBox(height: 16),
-                Text('${widget.tr('thresholdPreview')}: $previewThreshold'),
-                const SizedBox(height: 6),
-                ...groups.entries.map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Text(
-                      '${entry.key}: ${entry.value.length} ${widget.tr('cropsCount')}',
-                      style: TextStyle(color: Colors.black.withOpacity(0.65)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    widget.tr('settingsIntro'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      height: 1.4,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: widget.isSending ? null : () => widget.onApply(_soil, _crop),
-                    icon: widget.isSending
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.send),
-                    label: Text(widget.tr('sendToEsp')),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ─── Soil selection ─────────────────────────────────────────────
+          _SectionLabel(label: widget.tr('selectSoil'), icon: Icons.landscape_rounded),
+          const SizedBox(height: 8),
+          _SurfaceCard(
+            child: DropdownButtonFormField<String>(
+              value: _soil,
+              decoration: InputDecoration(
+                hintText: widget.tr('chooseSoilType'),
+                prefixIcon: const Icon(Icons.landscape_rounded, color: kColorPrimary),
+              ),
+              items: kSoilThresholds.keys
+                  .map((soil) => DropdownMenuItem(value: soil, child: Text(soil)))
+                  .toList(),
+              onChanged: (value) => setState(() => _soil = value ?? _soil),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ─── Crop selection ─────────────────────────────────────────────
+          _SectionLabel(label: widget.tr('selectCrop'), icon: Icons.grass_rounded),
+          const SizedBox(height: 8),
+          _SurfaceCard(
+            child: DropdownButtonFormField<String>(
+              value: _crop,
+              isExpanded: true,
+              decoration: InputDecoration(
+                hintText: widget.tr('chooseCrop'),
+                prefixIcon: const Icon(Icons.grass_rounded, color: kColorPrimary),
+              ),
+              items: kCropProfiles
+                  .map((crop) => DropdownMenuItem(
+                        value: crop.name,
+                        child: Text('${crop.name} (${crop.category})'),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => _crop = value ?? _crop),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ─── Threshold preview ──────────────────────────────────────────
+          _SurfaceCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: kColorInfo.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.speed_rounded, color: kColorInfo, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.tr('thresholdPreview'),
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        previewThreshold.toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 24,
+                          color: kColorPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: groups.entries
+                      .map((e) => Text(
+                            '${e.key}: ${e.value.length}',
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ))
+                      .toList(),
+                ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ─── Apply button ───────────────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: widget.isSending ? null : () => widget.onApply(_soil, _crop),
+              icon: widget.isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(
+                widget.tr('sendToEsp'),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -1393,32 +1763,80 @@ class AdvisoryScreen extends StatelessWidget {
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
         children: items
             .map(
               (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _AppCard(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(item.icon, color: item.color),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.title,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800, fontSize: 16)),
-                            const SizedBox(height: 5),
-                            Text(item.description,
-                                style: const TextStyle(fontWeight: FontWeight.w600)),
-                          ],
-                        ),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: kColorSurface,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: item.color.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
                       ),
                     ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            width: 6,
+                            color: item.color,
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: item.color.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(item.icon, color: item.color, size: 22),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          item.description,
+                                          style: const TextStyle(
+                                            color: Color(0xFF475569),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1494,72 +1912,146 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
       child: Column(
         children: [
-          _AppCard(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _tag('${widget.tr('soilLabel')}: ${widget.selectedSoil}'),
-                _tag('${widget.tr('cropLabel')}: ${widget.selectedCrop}'),
-                _tag(
-                    '${widget.tr('moistureLabel')}: ${widget.moisture?.toString() ?? widget.tr('noData')}'),
-                if (widget.isListening) _tag(widget.tr('speakNow')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: _AppCard(
-              child: ListView.separated(
-                controller: _scrollController,
-                itemCount: widget.messages.length + (widget.isLoading ? 1 : 0),
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  if (index >= widget.messages.length) {
-                    return ChatBubble(
-                        text: widget.tr('thinking'), isUser: false, isLoading: true);
-                  }
-                  final message = widget.messages[index];
-                  return ChatBubble(
-                    text: message.text,
-                    isUser: message.isUser,
-                    isError: message.isError,
-                  );
-                },
+          // ─── Context chips ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: kColorSurface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _tag(
+                    '${widget.tr('soilLabel')}: ${widget.selectedSoil}',
+                    const Color(0xFFFEF3C7),
+                    const Color(0xFF92400E),
+                  ),
+                  _tag(
+                    '${widget.tr('cropLabel')}: ${widget.selectedCrop}',
+                    const Color(0xFFDCFCE7),
+                    const Color(0xFF166534),
+                  ),
+                  _tag(
+                    '${widget.tr('moistureLabel')}: ${widget.moisture?.toString() ?? widget.tr('noData')}',
+                    const Color(0xFFDBEAFE),
+                    const Color(0xFF1E40AF),
+                  ),
+                  if (widget.isListening)
+                    _tag(widget.tr('speakNow'), const Color(0xFFFCE7F3), const Color(0xFF9D174D)),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          _AppCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    minLines: 1,
-                    maxLines: 4,
-                    onSubmitted: (_) => _handleSend(),
-                    decoration: InputDecoration(
-                      hintText: widget.tr('askSimpleLanguage'),
-                      border: OutlineInputBorder(),
+
+          const SizedBox(height: 8),
+
+          // ─── Chat messages ──────────────────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: kColorSurface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListView.separated(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(14),
+                  itemCount: widget.messages.length + (widget.isLoading ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    if (index >= widget.messages.length) {
+                      return ChatBubble(
+                          text: widget.tr('thinking'), isUser: false, isLoading: true);
+                    }
+                    final message = widget.messages[index];
+                    return ChatBubble(
+                      text: message.text,
+                      isUser: message.isUser,
+                      isError: message.isError,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+          // ─── Input bar ──────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: kColorSurface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      minLines: 1,
+                      maxLines: 4,
+                      onSubmitted: (_) => _handleSend(),
+                      decoration: InputDecoration(
+                        hintText: widget.tr('askSimpleLanguage'),
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: widget.isLoading ? null : _handleSend,
-                  icon: const Icon(Icons.send),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
+                  const SizedBox(width: 4),
+                  _CircleIconButton(
+                    icon: widget.isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                    color: widget.isListening ? kColorError : const Color(0xFF94A3B8),
+                    backgroundColor: widget.isListening
+                        ? kColorError.withOpacity(0.1)
+                        : const Color(0xFFF1F5F9),
+                    onPressed: widget.isLoading ? null : widget.onVoicePressed,
                     tooltip: widget.tr('voiceInput'),
-                  onPressed: widget.isLoading ? null : widget.onVoicePressed,
-                  icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
-                ),
-              ],
+                  ),
+                  const SizedBox(width: 6),
+                  _CircleIconButton(
+                    icon: Icons.send_rounded,
+                    color: Colors.white,
+                    backgroundColor: kColorPrimary,
+                    onPressed: widget.isLoading ? null : _handleSend,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1567,14 +2059,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     );
   }
 
-  Widget _tag(String text) {
+  Widget _tag(String text, Color bg, Color fg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F2FF),
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+      child: Text(text, style: TextStyle(fontWeight: FontWeight.w600, color: fg, fontSize: 12)),
     );
   }
 }
@@ -1629,65 +2121,143 @@ class _RainfallScreenState extends State<RainfallScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // ─── Hero card ──────────────────────────────────────────────────
+          _GradientCard(
+            gradient: kGradientWater,
+            child: Row(
               children: [
-                Text(widget.tr('rain'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.cloud_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.tr('rain'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.tr('locationHint'),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ─── Location input ─────────────────────────────────────────────
+          _SurfaceCard(
+            child: Column(
+              children: [
                 TextField(
                   controller: _controller,
                   decoration: InputDecoration(
                     hintText: widget.tr('locationHint'),
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: widget.isLoading
-                            ? null
-                            : () => widget.onPredict(_controller.text),
-                        icon: widget.isLoading
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Icon(Icons.cloud),
-                        label: Text(widget.tr('predictRain')),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: widget.tr('voiceLocation'),
+                    prefixIcon: const Icon(Icons.location_on_rounded, color: kColorPrimary),
+                    suffixIcon: _CircleIconButton(
+                      icon: widget.isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                      color: widget.isListening ? kColorError : const Color(0xFF64748B),
+                      backgroundColor: widget.isListening
+                          ? kColorError.withOpacity(0.1)
+                          : const Color(0xFFF1F5F9),
                       onPressed: widget.isLoading ? null : widget.onVoiceLocation,
-                      icon: Icon(widget.isListening ? Icons.mic : Icons.mic_none),
+                      tooltip: widget.tr('voiceLocation'),
                     ),
-                  ],
-                ),
-                if (widget.prediction != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFFAF3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(widget.prediction!,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
-                ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed:
+                        widget.isLoading ? null : () => widget.onPredict(_controller.text),
+                    icon: widget.isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.cloud_rounded),
+                    label: Text(
+                      widget.tr('predictRain'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
+
+          // ─── Prediction result ──────────────────────────────────────────
+          if (widget.prediction != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF0EA5E9).withOpacity(0.08),
+                    const Color(0xFF0EA5E9).withOpacity(0.02),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: kColorInfo.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.wb_cloudy_rounded, color: kColorInfo, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.prediction!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF0C4A6E),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1747,36 +2317,63 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 10, 16, bottomInset + 16),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.tr('appSetup'),
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-          const SizedBox(height: 10),
+          // Handle + title
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFCBD5E1),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: kColorPrimary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.settings_rounded, color: kColorPrimary),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                widget.tr('appSetup'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _espController,
             decoration: InputDecoration(
               labelText: widget.tr('espBaseUrl'),
               hintText: 'http://192.168.4.1',
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.router_rounded, color: kColorPrimary),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextField(
             controller: _apiKeyController,
             obscureText: true,
             decoration: const InputDecoration(
               labelText: 'OpenAI API Key',
               hintText: 'sk-...',
-              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.vpn_key_rounded, color: kColorPrimary),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           DropdownButtonFormField<AppLanguage>(
             value: _language,
             decoration: InputDecoration(
-                labelText: widget.tr('language'), border: const OutlineInputBorder()),
+              labelText: widget.tr('language'),
+              prefixIcon: const Icon(Icons.language_rounded, color: kColorPrimary),
+            ),
             items: const [
               DropdownMenuItem(value: AppLanguage.en, child: Text('English')),
               DropdownMenuItem(value: AppLanguage.hi, child: Text('Hindi')),
@@ -1784,14 +2381,27 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
             ],
             onChanged: (value) => setState(() => _language = value ?? AppLanguage.en),
           ),
-          SwitchListTile.adaptive(
-            value: _voiceEnabled,
-            onChanged: (v) => setState(() => _voiceEnabled = v),
-            title: Text(widget.tr('enableVoiceOutput')),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: SwitchListTile.adaptive(
+              value: _voiceEnabled,
+              onChanged: (v) => setState(() => _voiceEnabled = v),
+              title: Text(
+                widget.tr('enableVoiceOutput'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              activeColor: kColorPrimary,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
+            height: 50,
             child: FilledButton.icon(
               onPressed: () => widget.onSave(
                 _espController.text,
@@ -1799,8 +2409,11 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
                 _language,
                 _voiceEnabled,
               ),
-              icon: const Icon(Icons.save),
-              label: Text(widget.tr('saveSettings')),
+              icon: const Icon(Icons.save_rounded),
+              label: Text(
+                widget.tr('saveSettings'),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -1809,30 +2422,365 @@ class _ConnectionSheetState extends State<ConnectionSheet> {
   }
 }
 
-class _AppCard extends StatelessWidget {
-  const _AppCard({required this.child, this.gradient});
+class _AppHeader extends StatelessWidget {
+  const _AppHeader({
+    required this.title,
+    required this.subtitle,
+    required this.isRefreshing,
+    required this.onRefresh,
+    required this.onSettings,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isRefreshing;
+  final VoidCallback onRefresh;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(gradient: kGradientPrimary),
+      padding: EdgeInsets.fromLTRB(20, topPadding + 12, 16, 16),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.grass_rounded, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _CircleIconButton(
+            icon: isRefreshing ? Icons.hourglass_bottom_rounded : Icons.refresh_rounded,
+            color: Colors.white,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            onPressed: isRefreshing ? null : onRefresh,
+          ),
+          const SizedBox(width: 8),
+          _CircleIconButton(
+            icon: Icons.settings_rounded,
+            color: Colors.white,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            onPressed: onSettings,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientCard extends StatelessWidget {
+  const _GradientCard({required this.child, required this.gradient});
+
   final Widget child;
-  final Gradient? gradient;
+  final Gradient gradient;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: gradient,
-        color: gradient == null ? Colors.white.withOpacity(0.95) : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
+            color: (gradient as LinearGradient).colors.last.withOpacity(0.3),
+            blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: child,
     );
+  }
+}
+
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kColorSurface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kColorSurface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.active,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool active;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: active ? color : color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: active ? color : color.withOpacity(0.2),
+          ),
+        ),
+        child: Center(
+          child: loading
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: active ? Colors.white : color,
+                  ),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: active ? Colors.white : color, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: active ? Colors.white : color,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: kColorPrimary, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: Color(0xFF1E293B),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+    this.onPressed,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final btn = GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 18),
+      ),
+    );
+    if (tooltip != null) {
+      return Tooltip(message: tooltip!, child: btn);
+    }
+    return btn;
   }
 }
 
@@ -1852,41 +2800,89 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isUser
-        ? const Color(0xFF1D6FD8)
-        : isError
-            ? const Color(0xFFFEF2F2)
-            : const Color(0xFFF2FAF5);
+    if (isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 560),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: kGradientPrimary,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(18),
+              bottomRight: Radius.circular(4),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: kColorPrimary.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+        ),
+      );
+    }
 
-    final textColor = isUser
-        ? Colors.white
-        : isError
-            ? const Color(0xFF991B1B)
-            : const Color(0xFF17352D);
+    final isErr = isError;
+    final bubbleBg = isErr ? const Color(0xFFFEF2F2) : const Color(0xFFF0F7F4);
+    final textColor = isErr ? const Color(0xFF991B1B) : const Color(0xFF1E293B);
+    final borderColor = isErr ? const Color(0xFFFCA5A5) : const Color(0xFFD1FAE5);
 
     return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: Alignment.centerLeft,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 560),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: BorderRadius.circular(14),
+          color: bubbleBg,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(18),
+            topRight: Radius.circular(18),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(18),
+          ),
+          border: Border.all(color: borderColor),
         ),
         child: isLoading
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: kColorPrimary,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(text, style: TextStyle(color: textColor)),
+                  const SizedBox(width: 10),
+                  Text(
+                    text,
+                    style: TextStyle(color: textColor, fontSize: 14),
+                  ),
                 ],
               )
-            : Text(text, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
+            : Text(
+                text,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
       ),
     );
   }
