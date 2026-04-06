@@ -1191,9 +1191,11 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scale the moisture bar so it fills at 1.5× threshold (wet), giving headroom.
+    const double kMoistureBarScale = 1.5;
     final pct = moisture == null
         ? null
-        : ((moisture! / (threshold * 1.5)).clamp(0.0, 1.0));
+        : ((moisture! / (threshold * kMoistureBarScale)).clamp(0.0, 1.0));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -2503,7 +2505,7 @@ class _GradientCard extends StatelessWidget {
   const _GradientCard({required this.child, required this.gradient});
 
   final Widget child;
-  final Gradient gradient;
+  final LinearGradient gradient;
 
   @override
   Widget build(BuildContext context) {
@@ -2515,7 +2517,7 @@ class _GradientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: (gradient as LinearGradient).colors.last.withOpacity(0.3),
+            color: gradient.colors.last.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
