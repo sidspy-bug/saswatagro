@@ -293,7 +293,7 @@ class SaswatAgroApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: kColorBackground,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           color: kColorSurface,
